@@ -1,0 +1,4 @@
+language: go
+notifications:
+    email:
+      - david.j.peacock@gmail.com

@@ -20,7 +20,7 @@ func LaunchBot() *Config {
 
 ## Karma usage
 
-Shelbot's lexer is currently very simple and limited.  Increasing and decreasing karma is done idomatically.
+Shelbot's lexer is currently very simple and limited.  Increasing and decreasing karma is done idiomatically.
 
 `string++`
 

@@ -2,6 +2,10 @@
 
 Shelbot is a simple IRC karma bot written in Golang.
 
+[![Build Status](https://travis-ci.org/davidjpeacock/shelbot.svg?branch=master)](https://travis-ci.org/davidjpeacock/shelbot)
+[![Go Report Card](https://goreportcard.com/badge/github.com/davidjpeacock/shelbot)](https://goreportcard.com/report/github.com/davidjpeacock/shelbot)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/davidjpeacock/shelbot/master/LICENSE)
+
 ## Configuration
 
 Alter the configuration struct in main.go to suit.  Example:

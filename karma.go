@@ -10,17 +10,17 @@ import (
 
 var karmaDB = make(map[string]int)
 
-func KarmaIncrement(item string) int {
+func karmaIncrement(item string) int {
 	karmaDB[item]++
 	return karmaDB[item]
 }
 
-func KarmaDecrement(item string) int {
+func karmaDecrement(item string) int {
 	karmaDB[item]--
 	return karmaDB[item]
 }
 
-func ReadKarmaFileJSON() {
+func readKarmaFileJSON() {
 	usr, err := user.Current()
 	if err != nil {
 		log.Fatal(err)
@@ -43,7 +43,7 @@ func ReadKarmaFileJSON() {
 	}
 }
 
-func WriteKarmaFileJSON() {
+func writeKarmaFileJSON() {
 	usr, err := user.Current()
 	if err != nil {
 		log.Fatal(err)

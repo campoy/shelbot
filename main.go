@@ -10,9 +10,9 @@ import (
 	"strings"
 )
 
-const VERSION = "1.0.0"
+const version = "1.0.0"
 
-type Config struct {
+type config struct {
 	server        string
 	port          string
 	nick          string
@@ -23,8 +23,8 @@ type Config struct {
 	conn          net.Conn
 }
 
-func LaunchBot() *Config {
-	return &Config{server: "irc.freenode.org",
+func launchBot() *config {
+	return &config{server: "irc.freenode.org",
 		port:    "6667",
 		nick:    "shelbot",
 		channel: "#shelly",
@@ -33,7 +33,7 @@ func LaunchBot() *Config {
 		user:    "Sheldon Cooper"}
 }
 
-func (bot *Config) Connect() (conn net.Conn, err error) {
+func (bot *config) connect() (conn net.Conn, err error) {
 	conn, err = net.Dial("tcp", bot.server+":"+bot.port)
 	if err != nil {
 		log.Fatal("Failed to connect to IRC server", err)
@@ -44,14 +44,14 @@ func (bot *Config) Connect() (conn net.Conn, err error) {
 }
 
 func main() {
-	ReadKarmaFileJSON()
+	readKarmaFileJSON()
 
-	ircbot := LaunchBot()
-	conn, _ := ircbot.Connect()
+	ircbot := launchBot()
+	conn, _ := ircbot.connect()
 	conn.Write([]byte("USER " + ircbot.nick + " 8 * :" + ircbot.user + "\r\n"))
 	conn.Write([]byte("NICK " + ircbot.nick + "\r\n"))
 	conn.Write([]byte("JOIN " + ircbot.channel + "\r\n"))
-	conn.Write([]byte("PRIVMSG " + ircbot.channel + " :Sheldon bot version " + VERSION + " reporting for duty.\r\n"))
+	conn.Write([]byte("PRIVMSG " + ircbot.channel + " :Sheldon bot version " + version + " reporting for duty.\r\n"))
 	defer conn.Close()
 
 	rKarmaIncrement := regexp.MustCompile(`[A-z]\+\+$`) // matches string++ at EOL
@@ -81,7 +81,7 @@ func main() {
 				log.Println("Failed to trim suffix", err)
 			}
 			karmaTotal := 0
-			karmaTotal = KarmaIncrement(handle)
+			karmaTotal = karmaIncrement(handle)
 			if err != nil {
 				log.Println("Error: ", err)
 			}
@@ -89,7 +89,7 @@ func main() {
 			conn.Write([]byte("PRIVMSG " + ircbot.channel + " :Karma for " + handle + " now " + karmaString + "\r\n"))
 			log.Println("Karma for " + handle + " now " + karmaString)
 
-			WriteKarmaFileJSON()
+			writeKarmaFileJSON()
 		} else if rKarmaDecrement.MatchString(lineElements[len(lineElements)-1]) {
 			var handle = lineElements[len(lineElements)-1]
 			handle = strings.TrimPrefix(handle, ":")
@@ -101,7 +101,7 @@ func main() {
 				log.Println("Failed to trim suffix", err)
 			}
 			karmaTotal := 0
-			karmaTotal = KarmaDecrement(handle)
+			karmaTotal = karmaDecrement(handle)
 			if err != nil {
 				log.Println("Error: ", err)
 			}
@@ -109,7 +109,7 @@ func main() {
 			conn.Write([]byte("PRIVMSG " + ircbot.channel + " :Karma for " + handle + " now " + karmaString + "\r\n"))
 			log.Println("Karma for " + handle + " now " + karmaString)
 
-			WriteKarmaFileJSON()
+			writeKarmaFileJSON()
 		}
 	}
 }

@@ -48,7 +48,7 @@ func main() {
 
 	ircbot := LaunchBot()
 	conn, _ := ircbot.Connect()
-	conn.Write([]byte("USER " + ircbot.nick + " 8 * :" + ircbot.nick + "\r\n"))
+	conn.Write([]byte("USER " + ircbot.nick + " 8 * :" + ircbot.user + "\r\n"))
 	conn.Write([]byte("NICK " + ircbot.nick + "\r\n"))
 	conn.Write([]byte("JOIN " + ircbot.channel + "\r\n"))
 	conn.Write([]byte("PRIVMSG " + ircbot.channel + " :Sheldon bot version " + VERSION + " reporting for duty.\r\n"))

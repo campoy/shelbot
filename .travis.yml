@@ -2,8 +2,4 @@ language: go
 notifications:
     email:
       - david.j.peacock@gmail.com
-    irc:
-      channels:
-        - "irc.sackheads.org#ibmexpats"
-      use_notice: true
-      skip_join: true
+    irc: "irc.sackheads.org#ibmexpats"

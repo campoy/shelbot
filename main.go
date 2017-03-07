@@ -54,8 +54,8 @@ func main() {
 	conn.Write([]byte("PRIVMSG " + ircbot.channel + " :Sheldon bot version " + VERSION + " reporting for duty.\r\n"))
 	defer conn.Close()
 
-	ri := regexp.MustCompile(`[A-z]\+\+$`) // Karma increment
-	rd := regexp.MustCompile(`[A-z]\-\-$`) // Karma decrement
+	rKarmaIncrement := regexp.MustCompile(`[A-z]\+\+$`) // matches string++ at EOL
+	rKarmaDecrement := regexp.MustCompile(`[A-z]\-\-$`) // matches string-- at EOL
 
 	reader := bufio.NewReader(conn)
 	response := textproto.NewReader(reader)
@@ -70,7 +70,7 @@ func main() {
 		if lineElements[0] == "PING" {
 			conn.Write([]byte("PONG " + lineElements[1] + "\r\n"))
 			log.Println("PONG " + lineElements[1])
-		} else if ri.MatchString(lineElements[len(lineElements)-1]) {
+		} else if rKarmaIncrement.MatchString(lineElements[len(lineElements)-1]) {
 			var handle = lineElements[len(lineElements)-1]
 			handle = strings.TrimPrefix(handle, ":")
 			if err != nil {
@@ -90,7 +90,7 @@ func main() {
 			log.Println("Karma for " + handle + " now " + karmaString)
 
 			WriteKarmaFileJSON()
-		} else if rd.MatchString(lineElements[len(lineElements)-1]) {
+		} else if rKarmaDecrement.MatchString(lineElements[len(lineElements)-1]) {
 			var handle = lineElements[len(lineElements)-1]
 			handle = strings.TrimPrefix(handle, ":")
 			if err != nil {

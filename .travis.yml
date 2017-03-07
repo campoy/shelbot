@@ -2,3 +2,4 @@ language: go
 notifications:
     email:
       - david.j.peacock@gmail.com
+    irc: "irc.sackheads.org#ibmexpats"

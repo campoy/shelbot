@@ -2,13 +2,12 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"log"
 	"net"
 	"net/textproto"
 	"os"
 	"os/user"
-	"regexp"
-	"strconv"
 	"strings"
 )
 
@@ -46,6 +45,7 @@ func (bot *config) connect() (conn net.Conn, err error) {
 }
 
 func main() {
+	var karmaFunc func(string) int
 	usr, err := user.Current()
 	if err != nil {
 		log.Fatal(err)
@@ -67,9 +67,6 @@ func main() {
 	conn.Write([]byte("PRIVMSG " + ircbot.channel + " :Sheldon bot version " + version + " reporting for duty.\r\n"))
 	defer conn.Close()
 
-	rKarmaIncrement := regexp.MustCompile(`[A-z]\+\+$`) // matches string++ at EOL
-	rKarmaDecrement := regexp.MustCompile(`[A-z]\-\-$`) // matches string-- at EOL
-
 	reader := bufio.NewReader(conn)
 	response := textproto.NewReader(reader)
 	for {
@@ -83,47 +80,23 @@ func main() {
 		if lineElements[0] == "PING" {
 			conn.Write([]byte("PONG " + lineElements[1] + "\r\n"))
 			log.Println("PONG " + lineElements[1])
-		} else if rKarmaIncrement.MatchString(lineElements[len(lineElements)-1]) {
-			var handle = lineElements[len(lineElements)-1]
-			handle = strings.TrimPrefix(handle, ":")
-			if err != nil {
-				log.Println("Failed to trim prefix", err)
-			}
-			handle = strings.TrimSuffix(handle, "++")
-			if err != nil {
-				log.Println("Failed to trim suffix", err)
-			}
-			karmaTotal := 0
-			karmaTotal = karmaIncrement(handle)
-			if err != nil {
-				log.Println("Error: ", err)
-			}
-			karmaString := strconv.Itoa(karmaTotal)
-			conn.Write([]byte("PRIVMSG " + ircbot.channel + " :Karma for " + handle + " now " + karmaString + "\r\n"))
-			log.Println("Karma for " + handle + " now " + karmaString)
-
-			writeKarmaFileJSON()
-		} else if rKarmaDecrement.MatchString(lineElements[len(lineElements)-1]) {
-			var handle = lineElements[len(lineElements)-1]
-			handle = strings.TrimPrefix(handle, ":")
-			if err != nil {
-				log.Println("Failed to trim prefix", err)
-			}
-			handle = strings.TrimSuffix(handle, "--")
-			if err != nil {
-				log.Println("Failed to trim suffix", err)
-			}
-			karmaTotal := 0
-			karmaTotal = karmaDecrement(handle)
-			if err != nil {
-				log.Println("Error: ", err)
-			}
-			karmaString := strconv.Itoa(karmaTotal)
-			conn.Write([]byte("PRIVMSG " + ircbot.channel + " :Karma for " + handle + " now " + karmaString + "\r\n"))
-			log.Println("Karma for " + handle + " now " + karmaString)
-
-			writeKarmaFileJSON()
+			continue
 		}
+
+		var handle = strings.Trim(lineElements[len(lineElements)-1], ":+")
+
+		if strings.HasSuffix(line, "++") {
+			karmaFunc = karmaIncrement
+		} else if strings.HasSuffix(line, "--") {
+			karmaFunc = karmaDecrement
+		}
+
+		karmaTotal := karmaFunc(handle)
+		response := fmt.Sprintf("Karma for %s now %d", handle, karmaTotal)
+		conn.Write([]byte(fmt.Sprintf("PRIVMSG %s:%s\r\n", ircbot.channel, response)))
+		log.Println(response)
+
+		writeKarmaFileJSON()
 	}
 	logFile.Close()
 }

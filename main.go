@@ -83,7 +83,7 @@ func main() {
 			continue
 		}
 
-		var handle = strings.Trim(lineElements[len(lineElements)-1], ":+")
+		var handle = strings.Trim(lineElements[len(lineElements)-1], ":+-")
 
 		if strings.HasSuffix(line, "++") {
 			karmaFunc = karmaIncrement

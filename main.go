@@ -5,6 +5,8 @@ import (
 	"log"
 	"net"
 	"net/textproto"
+	"os"
+	"os/user"
 	"regexp"
 	"strconv"
 	"strings"
@@ -44,6 +46,17 @@ func (bot *config) connect() (conn net.Conn, err error) {
 }
 
 func main() {
+	usr, err := user.Current()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	logFile, err := os.OpenFile(usr.HomeDir+"/.shelbot.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.SetOutput(logFile)
+
 	readKarmaFileJSON()
 
 	ircbot := launchBot()
@@ -112,4 +125,5 @@ func main() {
 			writeKarmaFileJSON()
 		}
 	}
+	logFile.Close()
 }

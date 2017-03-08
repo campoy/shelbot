@@ -83,6 +83,10 @@ func main() {
 			continue
 		}
 
+		if !strings.HasSuffix(line, "++") && !strings.HasSuffix(line, "--") || len(lineElements) < 2 {
+			continue
+		}
+
 		var handle = strings.Trim(lineElements[len(lineElements)-1], ":+-")
 
 		if strings.HasSuffix(line, "++") {

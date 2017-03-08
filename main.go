@@ -97,7 +97,7 @@ func main() {
 
 		karmaTotal := karmaFunc(handle)
 		response := fmt.Sprintf("Karma for %s now %d", handle, karmaTotal)
-		conn.Write([]byte(fmt.Sprintf("PRIVMSG %s:%s\r\n", ircbot.channel, response)))
+		conn.Write([]byte(fmt.Sprintf("PRIVMSG %s :%s\r\n", ircbot.channel, response)))
 		log.Println(response)
 
 		writeKarmaFileJSON()

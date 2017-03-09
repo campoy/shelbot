@@ -2,61 +2,87 @@ package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
-	"os/user"
 )
 
-var karmaDB = make(map[string]int)
-
-func karmaIncrement(item string) int {
-	karmaDB[item]++
-	return karmaDB[item]
+type karma struct {
+	db     map[string]int
+	dbFile io.ReadWriteSeeker
 }
 
-func karmaDecrement(item string) int {
-	karmaDB[item]--
-	return karmaDB[item]
+func (k *karma) increment(item string) int {
+	k.db[item]++
+	return k.db[item]
 }
 
-func readKarmaFileJSON() {
-	usr, err := user.Current()
-	if err != nil {
-		log.Fatal(err)
+func (k *karma) decrement(item string) int {
+	k.db[item]--
+	return k.db[item]
+}
+
+func newKarma(d io.ReadWriteSeeker) *karma {
+	k := &karma{
+		db:     make(map[string]int),
+		dbFile: d,
 	}
 
-	if _, err := os.Stat(usr.HomeDir + "/.shelbot.json"); err != nil {
-		if os.IsNotExist(err) {
-			log.Println("No karma JSON found.")
+	return k
+}
+
+func (k *karma) read() error {
+	if _, err := k.dbFile.Seek(io.SeekStart, 0); err != nil {
+		return err
+	}
+	decoder := json.NewDecoder(k.dbFile)
+	if err := decoder.Decode(&k.db); err != nil {
+		if err != io.EOF {
+			return err
 		}
-		return
+	}
+
+	return nil
+}
+
+func readKarmaFileJSON(fileLoc string) (*karma, error) {
+	var err error
+	var dbFile *os.File
+	if _, err := os.Stat(fileLoc); err != nil {
+		if os.IsNotExist(err) {
+			log.Println("No karma JSON found, creating.")
+		}
+		if dbFile, err = os.OpenFile(fileLoc, os.O_RDWR|os.O_CREATE, 0644); err != nil {
+			return nil, err
+		}
+		return newKarma(dbFile), nil
 	}
 	log.Println("Loading karma JSON from disk and populating karmaDB map.")
-	karmaFileJSON, err := ioutil.ReadFile(usr.HomeDir + "/.shelbot.json")
-	if err != nil {
-		log.Fatal(err)
+	if dbFile, err = os.OpenFile(fileLoc, os.O_RDWR|os.O_CREATE, 0644); err != nil {
+		return nil, err
 	}
-	err = json.Unmarshal(karmaFileJSON, &karmaDB)
-	if err != nil {
-		log.Fatal(err)
+	k := newKarma(dbFile)
+	if err = k.read(); err != nil {
+		return nil, err
 	}
+
+	return k, nil
 }
 
-func writeKarmaFileJSON() {
-	usr, err := user.Current()
+func (k *karma) save() error {
+	marshaledKarmaData, err := json.MarshalIndent(k.db, "", "    ")
 	if err != nil {
-		log.Fatal(err)
-	}
-
-	marshaledKarmaData, err := json.MarshalIndent(karmaDB, "", "    ")
-	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	log.Println("Writing karma JSON to file.")
-	ioutil.WriteFile(usr.HomeDir+"/.shelbot.json", marshaledKarmaData, 0644)
-	if err != nil {
-		log.Fatal(err)
+	//ioutil.WriteFile(k.dbFile, marshaledKarmaData, 0644)
+	if _, err := k.dbFile.Seek(io.SeekStart, 0); err != nil {
+		return err
 	}
+	if _, err := k.dbFile.Write(marshaledKarmaData); err != nil {
+		return err
+	}
+
+	return nil
 }

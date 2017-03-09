@@ -14,7 +14,7 @@ import (
 	"syscall"
 )
 
-const version = "1.2.0"
+const version = "1.2.1"
 
 var homeDir string
 

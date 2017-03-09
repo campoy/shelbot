@@ -7,9 +7,11 @@ import (
 	"log"
 	"net/textproto"
 	"os"
+	"os/signal"
 	"os/user"
 	"path/filepath"
 	"strings"
+	"syscall"
 )
 
 const version = "1.2.0"
@@ -50,11 +52,26 @@ func main() {
 	if err = bot.connect(); err != nil {
 		log.Fatal(err)
 	}
+
+	go func() {
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+		<-c
+		log.Println("Received SIGTERM, exiting")
+		bot.conn.Write([]byte("QUIT :Bazinga!"))
+		bot.conn.Close()
+		if err = k.save(); err == nil {
+			if f, ok := k.dbFile.(*os.File); ok {
+				f.Close()
+			}
+		}
+		os.Exit(0)
+	}()
+
 	bot.conn.Write([]byte("USER " + bot.Nick + " 8 * :" + bot.User + "\r\n"))
 	bot.conn.Write([]byte("NICK " + bot.Nick + "\r\n"))
 	bot.conn.Write([]byte("JOIN " + bot.Channel + "\r\n"))
 	bot.conn.Write([]byte("PRIVMSG " + bot.Channel + " :Sheldon bot version " + version + " reporting for duty.\r\n"))
-	defer bot.conn.Close()
 
 	reader := bufio.NewReader(bot.conn)
 	response := textproto.NewReader(reader)

@@ -8,17 +8,16 @@ Shelbot is a simple IRC karma bot written in Golang.
 
 ## Configuration
 
-Alter the configuration struct in main.go to suit.  Example:
+Create a JSON configuration file with IRC details. By default Shelbot will look for this file in `~/.shelbot.conf`, this can be changed with the command line option `-config <file>` Example:
 
 ```
-func LaunchBot() *Config {
-	return &Config{server: "irc.freenode.org",
-		port:    "6667",
-		nick:    "shelbot",
-		channel: "#shelly",
-		pass:    "",
-		conn:    nil,
-		user:    "Sheldon Cooper"}
+{
+	server: "irc.freenode.org",
+	port:    "6667",
+	nick:    "shelbot",
+	channel: "#shelly",
+	pass:    "",
+	user:    "Sheldon Cooper"
 }
 ```
 
@@ -37,7 +36,7 @@ Shelbot's lexer is currently very simple and limited.  Increasing and decreasing
 
 `string--`
 
-For data persistence, Shelbot stores karma as a JSON in `~/.shelbot.json`
+For data persistence, Shelbot stores karma as a JSON in the default location`~/.shelbot.json`, this can be configured with the command line option `-karmaFile <file>`
 
 ## License and Copyright
 

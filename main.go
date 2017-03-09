@@ -2,72 +2,61 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"log"
-	"net"
 	"net/textproto"
 	"os"
 	"os/user"
+	"path/filepath"
 	"strings"
 )
 
-const version = "1.1.0"
+const version = "1.2.0"
 
-type config struct {
-	server        string
-	port          string
-	nick          string
-	user          string
-	channel       string
-	pass          string
-	pread, pwrite chan string
-	conn          net.Conn
-}
+var homeDir string
 
-func launchBot() *config {
-	return &config{server: "irc.freenode.org",
-		port:    "6667",
-		nick:    "shelbot",
-		channel: "#shelly",
-		pass:    "",
-		conn:    nil,
-		user:    "Sheldon Cooper"}
-}
-
-func (bot *config) connect() (conn net.Conn, err error) {
-	conn, err = net.Dial("tcp", bot.server+":"+bot.port)
-	if err != nil {
-		log.Fatal("Failed to connect to IRC server", err)
-	}
-	bot.conn = conn
-	log.Println("Connected to IRC server", bot.server, bot.conn.RemoteAddr())
-	return bot.conn, nil
-}
-
-func main() {
-	var karmaFunc func(string) int
+func init() {
 	usr, err := user.Current()
 	if err != nil {
 		log.Fatal(err)
 	}
+	homeDir = usr.HomeDir
+}
 
-	logFile, err := os.OpenFile(usr.HomeDir+"/.shelbot.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+func main() {
+	var bot *config
+	var k *karma
+	var err error
+	var karmaFunc func(string) int
+
+	confFile := flag.String("config", filepath.Join(homeDir, ".shelbot.conf"), "config file to be used with shelbot")
+	karmaFile := flag.String("karmaFile", filepath.Join(homeDir, ".shelbot.json"), "karma db file")
+	flag.Parse()
+	if bot, err = loadConfig(*confFile); err != nil {
+		log.Fatalf("Error reading config file: %s", err)
+	}
+
+	logFile, err := os.OpenFile(filepath.Join(homeDir, ".shelbot.log"), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}
 	log.SetOutput(logFile)
 
-	readKarmaFileJSON()
+	if k, err = readKarmaFileJSON(*karmaFile); err != nil {
+		log.Fatalf("Error loading karma DB: %s", err)
+	}
 
-	ircbot := launchBot()
-	conn, _ := ircbot.connect()
-	conn.Write([]byte("USER " + ircbot.nick + " 8 * :" + ircbot.user + "\r\n"))
-	conn.Write([]byte("NICK " + ircbot.nick + "\r\n"))
-	conn.Write([]byte("JOIN " + ircbot.channel + "\r\n"))
-	conn.Write([]byte("PRIVMSG " + ircbot.channel + " :Sheldon bot version " + version + " reporting for duty.\r\n"))
-	defer conn.Close()
+	if err = bot.connect(); err != nil {
+		log.Fatal(err)
+	}
+	bot.conn.Write([]byte("USER " + bot.Nick + " 8 * :" + bot.User + "\r\n"))
+	bot.conn.Write([]byte("NICK " + bot.Nick + "\r\n"))
+	bot.conn.Write([]byte("JOIN " + bot.Channel + "\r\n"))
+	bot.conn.Write([]byte("PRIVMSG " + bot.Channel + " :Sheldon bot version " + version + " reporting for duty.\r\n"))
+	defer bot.conn.Close()
 
-	reader := bufio.NewReader(conn)
+	reader := bufio.NewReader(bot.conn)
 	response := textproto.NewReader(reader)
 	for {
 		line, err := response.ReadLine()
@@ -78,7 +67,7 @@ func main() {
 
 		lineElements := strings.Fields(line)
 		if lineElements[0] == "PING" {
-			conn.Write([]byte("PONG " + lineElements[1] + "\r\n"))
+			bot.conn.Write([]byte("PONG " + lineElements[1] + "\r\n"))
 			log.Println("PONG " + lineElements[1])
 			continue
 		}
@@ -90,17 +79,19 @@ func main() {
 		var handle = strings.Trim(lineElements[len(lineElements)-1], ":+-")
 
 		if strings.HasSuffix(line, "++") {
-			karmaFunc = karmaIncrement
+			karmaFunc = k.increment
 		} else if strings.HasSuffix(line, "--") {
-			karmaFunc = karmaDecrement
+			karmaFunc = k.decrement
 		}
 
 		karmaTotal := karmaFunc(handle)
 		response := fmt.Sprintf("Karma for %s now %d", handle, karmaTotal)
-		conn.Write([]byte(fmt.Sprintf("PRIVMSG %s :%s\r\n", ircbot.channel, response)))
+		bot.conn.Write([]byte(fmt.Sprintf("PRIVMSG %s :%s\r\n", bot.Channel, response)))
 		log.Println(response)
 
-		writeKarmaFileJSON()
+		if err = k.save(); err != nil {
+			log.Fatalf("Error saving karma db: %s", err)
+		}
 	}
 	logFile.Close()
 }

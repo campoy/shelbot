@@ -22,6 +22,13 @@ func LaunchBot() *Config {
 }
 ```
 
+## Usage with systemd
+
+1. Build shelbot for your platform of choice, copy the binary over to your system
+2. Tailor the shelbot.service file provided under the systemd directory to suit your USER and GROUP
+3. `cp shelbot.service /etc/systemd/system`
+4. `sudo systemctl daemon-reload`
+
 ## Karma usage
 
 Shelbot's lexer is currently very simple and limited.  Increasing and decreasing karma is done idiomatically.

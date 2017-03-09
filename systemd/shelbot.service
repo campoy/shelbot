@@ -1,0 +1,15 @@
+[Unit]
+Description=Shelbot IRC Karma Bot
+After=network.target auditd.service
+
+[Service]
+User=USER
+Group=USER
+ExecStart=/home/USER/shelbot
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=process
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+Alias=shelbot.service

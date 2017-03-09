@@ -12,12 +12,12 @@ Create a JSON configuration file with IRC details. By default Shelbot will look 
 
 ```
 {
-	server: "irc.freenode.org",
-	port:    "6667",
-	nick:    "shelbot",
-	channel: "#shelly",
-	pass:    "",
-	user:    "Sheldon Cooper"
+	"server": "irc.freenode.org",
+	"port":    "6667",
+	"nick":    "shelbot",
+	"channel": "#shelly",
+	"pass":    "",
+	"user":    "Sheldon Cooper"
 }
 ```
 

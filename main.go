@@ -32,18 +32,18 @@ func main() {
 	var err error
 	var karmaFunc func(string) int
 
+	logFile, err := os.OpenFile(filepath.Join(homeDir, ".shelbot.log"), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.SetOutput(logFile)
+
 	confFile := flag.String("config", filepath.Join(homeDir, ".shelbot.conf"), "config file to be used with shelbot")
 	karmaFile := flag.String("karmaFile", filepath.Join(homeDir, ".shelbot.json"), "karma db file")
 	flag.Parse()
 	if bot, err = loadConfig(*confFile); err != nil {
 		log.Fatalf("Error reading config file: %s", err)
 	}
-
-	logFile, err := os.OpenFile(filepath.Join(homeDir, ".shelbot.log"), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.SetOutput(logFile)
 
 	if k, err = readKarmaFileJSON(*karmaFile); err != nil {
 		log.Fatalf("Error loading karma DB: %s", err)

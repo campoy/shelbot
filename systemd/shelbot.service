@@ -4,7 +4,7 @@ After=network.target auditd.service
 
 [Service]
 User=USER
-Group=USER
+Group=GROUP
 ExecStart=/home/USER/shelbot
 ExecReload=/bin/kill -HUP $MAINPID
 KillMode=process

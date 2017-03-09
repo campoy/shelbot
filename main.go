@@ -58,7 +58,7 @@ func main() {
 		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 		<-c
 		log.Println("Received SIGTERM, exiting")
-		bot.conn.Write([]byte("QUIT :Bazinga!"))
+		bot.conn.Write([]byte("QUIT :Bazinga!\r\n"))
 		bot.conn.Close()
 		if err = k.save(); err == nil {
 			if f, ok := k.dbFile.(*os.File); ok {

@@ -27,6 +27,7 @@ Create a JSON configuration file with IRC details. By default Shelbot will look 
 2. Tailor the shelbot.service file provided under the systemd directory to suit your USER and GROUP
 3. `cp shelbot.service /etc/systemd/system`
 4. `sudo systemctl daemon-reload`
+5. `systemctl start|stop|status shelbot`
 
 ## Karma usage
 

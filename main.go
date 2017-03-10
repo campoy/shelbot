@@ -96,6 +96,20 @@ func main() {
 			continue
 		}
 
+		if lineElements[1] == "PRIVMSG" && lineElements[3] == ":shelbot" {
+			if lineElements[4] == "rank" {
+				bot.conn.Write([]byte("PRIVMSG " + bot.Channel + " :Rank: \r\n"))
+				log.Println("Rank: ")
+				// TODO: ranking algorithm and display of top ten to channel
+			}
+
+			if lineElements[4] == "version" {
+				bot.conn.Write([]byte("PRIVMSG " + bot.Channel + " :Shelbot version " + version + ".\r\n"))
+				log.Println("Shelbot version " + version)
+			}
+			continue
+		}
+
 		if !strings.HasSuffix(line, "++") && !strings.HasSuffix(line, "--") || len(lineElements) < 2 {
 			continue
 		}

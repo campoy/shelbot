@@ -40,7 +40,14 @@ func main() {
 
 	confFile := flag.String("config", filepath.Join(homeDir, ".shelbot.conf"), "config file to be used with shelbot")
 	karmaFile := flag.String("karmaFile", filepath.Join(homeDir, ".shelbot.json"), "karma db file")
+	v := flag.Bool("v", false, "Prints Shelbot version")
 	flag.Parse()
+
+	if *v {
+		fmt.Println("Sheldon bot version " + version)
+		return
+	}
+
 	if bot, err = loadConfig(*confFile); err != nil {
 		log.Fatalf("Error reading config file: %s", err)
 	}

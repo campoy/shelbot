@@ -78,7 +78,7 @@ func main() {
 	bot.conn.Write([]byte("USER " + bot.Nick + " 8 * :" + bot.User + "\r\n"))
 	bot.conn.Write([]byte("NICK " + bot.Nick + "\r\n"))
 	bot.conn.Write([]byte("JOIN " + bot.Channel + "\r\n"))
-	bot.conn.Write([]byte("PRIVMSG " + bot.Channel + " :Sheldon bot version " + version + " reporting for duty.\r\n"))
+	bot.conn.Write([]byte("PRIVMSG " + bot.Channel + " :Shelbot version " + version + " reporting for duty.\r\n"))
 
 	reader := bufio.NewReader(bot.conn)
 	response := textproto.NewReader(reader)

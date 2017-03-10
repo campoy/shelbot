@@ -29,6 +29,8 @@ Create a JSON configuration file with IRC details. By default Shelbot will look 
 4. `sudo systemctl daemon-reload`
 5. `systemctl start|stop|status shelbot`
 
+Shelbot logs to `~/.shelbot.log`
+
 ## Karma usage
 
 Shelbot's lexer is currently very simple and limited.  Increasing and decreasing karma is done idiomatically.

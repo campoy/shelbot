@@ -22,6 +22,10 @@ func (k *karma) decrement(item string) int {
 	return k.db[item]
 }
 
+func (k *karma) query(item string) int {
+	return k.db[item]
+}
+
 func newKarma(d io.ReadWriteSeeker) *karma {
 	k := &karma{
 		db:     make(map[string]int),

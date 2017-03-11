@@ -44,7 +44,7 @@ func main() {
 	flag.Parse()
 
 	if *v {
-		fmt.Println("Sheldon bot version " + version)
+		fmt.Println("Shelbot version " + version)
 		return
 	}
 
@@ -97,15 +97,21 @@ func main() {
 		}
 
 		if lineElements[1] == "PRIVMSG" && lineElements[3] == ":shelbot" {
-			if lineElements[4] == "rank" {
-				bot.conn.Write([]byte("PRIVMSG " + bot.Channel + " :Rank: \r\n"))
-				log.Println("Rank: ")
-				// TODO: ranking algorithm and display of top ten to channel
+			if lineElements[4] == "help" {
+				bot.conn.Write([]byte("PRIVMSG " + bot.Channel + " :Shelbot commands available: \"help\", \"version\", \"query item\".\r\n"))
+				log.Println("Shelbot help provided.")
 			}
 
 			if lineElements[4] == "version" {
 				bot.conn.Write([]byte("PRIVMSG " + bot.Channel + " :Shelbot version " + version + ".\r\n"))
 				log.Println("Shelbot version " + version)
+			}
+
+			if lineElements[4] == "query" {
+				karmaValue := k.query(lineElements[5])
+				response := fmt.Sprintf("Karma for %s is %d.", lineElements[5], karmaValue)
+				bot.conn.Write([]byte(fmt.Sprintf("PRIVMSG %s :%s\r\n", bot.Channel, response)))
+				log.Println(response)
 			}
 			continue
 		}

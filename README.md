@@ -31,9 +31,15 @@ Create a JSON configuration file with IRC details. By default Shelbot will look 
 
 Shelbot logs to `~/.shelbot.log`
 
-## Karma usage
+## Shelbot usage
 
-Shelbot's lexer is currently very simple and limited.  Increasing and decreasing karma is done idiomatically.
+In channel, you can invoke shelbot commands as follows.
+
+`shelbot help`
+
+shelbot commands available: "help", "version", "query item".
+
+Increasing and decreasing karma is done idiomatically.
 
 `string++`
 

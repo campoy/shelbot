@@ -139,10 +139,39 @@ func main() {
 
 				sort.Sort(sort.Reverse(p))
 
+				n := 0
+
 				for _, k := range p {
-					response := fmt.Sprintf("Karma for %s is %d.", k.Key, k.Value)
-					bot.conn.Write([]byte(fmt.Sprintf("PRIVMSG %s :%s\r\n", bot.Channel, response)))
-					log.Println(response)
+					if n < 10 {
+						n++
+						response := fmt.Sprintf("Karma for %s is %d.", k.Key, k.Value)
+						bot.conn.Write([]byte(fmt.Sprintf("PRIVMSG %s :%s\r\n", bot.Channel, response)))
+						log.Println(response)
+					}
+				}
+			}
+
+			if lineElements[4] == "bottomten" {
+				p := make(PairList, len(k.db))
+
+				i := 0
+
+				for k, v := range k.db {
+					p[i] = Pair{k, v}
+					i++
+				}
+
+				sort.Sort(p)
+
+				n := 0
+
+				for _, k := range p {
+					if n < 10 {
+						n++
+						response := fmt.Sprintf("Karma for %s is %d.", k.Key, k.Value)
+						bot.conn.Write([]byte(fmt.Sprintf("PRIVMSG %s :%s\r\n", bot.Channel, response)))
+						log.Println(response)
+					}
 				}
 			}
 			continue

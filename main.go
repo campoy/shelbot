@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"os/user"
 	"path/filepath"
+	"sort"
 	"strings"
 	"syscall"
 )
@@ -25,6 +26,17 @@ func init() {
 	}
 	homeDir = usr.HomeDir
 }
+
+type Pair struct {
+	Key   string
+	Value int
+}
+
+type PairList []Pair
+
+func (p PairList) Len() int           { return len(p) }
+func (p PairList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+func (p PairList) Less(i, j int) bool { return p[i].Value < p[j].Value }
 
 func main() {
 	var bot *config
@@ -113,6 +125,25 @@ func main() {
 				response := fmt.Sprintf("Karma for %s is %d.", lineElements[5], karmaValue)
 				bot.conn.Write([]byte(fmt.Sprintf("PRIVMSG %s :%s\r\n", bot.Channel, response)))
 				log.Println(response)
+			}
+
+			if lineElements[4] == "topten" {
+				p := make(PairList, len(k.db))
+
+				i := 0
+
+				for k, v := range k.db {
+					p[i] = Pair{k, v}
+					i++
+				}
+
+				sort.Sort(sort.Reverse(p))
+
+				for _, k := range p {
+					response := fmt.Sprintf("Karma for %s is %d.", k.Key, k.Value)
+					bot.conn.Write([]byte(fmt.Sprintf("PRIVMSG %s :%s\r\n", bot.Channel, response)))
+					log.Println(response)
+				}
 			}
 			continue
 		}

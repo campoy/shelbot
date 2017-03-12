@@ -110,7 +110,7 @@ func main() {
 
 		if lineElements[1] == "PRIVMSG" && lineElements[3] == ":shelbot" {
 			if lineElements[4] == "help" {
-				bot.conn.Write([]byte("PRIVMSG " + bot.Channel + " :Shelbot commands available: \"help\", \"version\", \"query item\".\r\n"))
+				bot.conn.Write([]byte("PRIVMSG " + bot.Channel + " :Shelbot commands available: \"help\", \"version\", \"query item\", \"topten\", \"bottomten\".\r\n"))
 				bot.conn.Write([]byte("PRIVMSG " + bot.Channel + " :Karma can be incremented idiomatically: \"foo++\" and \"bar--\".\r\n"))
 				log.Println("Shelbot help provided.")
 			}

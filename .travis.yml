@@ -1,4 +1,6 @@
-language: go "1.8"
+language: go
+        - 1.8.x
+        - master
 notifications:
     email:
       - david.j.peacock@gmail.com

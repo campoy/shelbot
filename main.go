@@ -127,51 +127,23 @@ func main() {
 				log.Println(response)
 			}
 
-			if lineElements[4] == "topten" {
-				p := make(PairList, len(k.db))
-
-				i := 0
-
+			if lineElements[4] == "topten" || lineElements[4] == "bottomten" {
+				var p []Pair
 				for k, v := range k.db {
-					p[i] = Pair{k, v}
-					i++
+					p = append(p, Pair{k, v})
 				}
 
-				sort.Sort(sort.Reverse(p))
-
-				n := 0
-
-				for _, k := range p {
-					if n < 10 {
-						n++
-						response := fmt.Sprintf("Karma for %s is %d.", k.Key, k.Value)
-						bot.conn.Write([]byte(fmt.Sprintf("PRIVMSG %s :%s\r\n", bot.Channel, response)))
-						log.Println(response)
-					}
-				}
-			}
-
-			if lineElements[4] == "bottomten" {
-				p := make(PairList, len(k.db))
-
-				i := 0
-
-				for k, v := range k.db {
-					p[i] = Pair{k, v}
-					i++
+				switch lineElements[4] {
+				case "topten":
+					sort.Slice(p, func(i, j int) bool { return p[i].Value > p[j].Value })
+				case "bottomten":
+					sort.Slice(p, func(i, j int) bool { return p[i].Value < p[j].Value })
 				}
 
-				sort.Sort(p)
-
-				n := 0
-
-				for _, k := range p {
-					if n < 10 {
-						n++
-						response := fmt.Sprintf("Karma for %s is %d.", k.Key, k.Value)
-						bot.conn.Write([]byte(fmt.Sprintf("PRIVMSG %s :%s\r\n", bot.Channel, response)))
-						log.Println(response)
-					}
+				for i := 0; i < 10 && i < len(p); i++ {
+					response := fmt.Sprintf("Karma for %s is %d.", p[i].Key, p[i].Value)
+					bot.conn.Write([]byte(fmt.Sprintf("PRIVMSG %s :%s\r\n", bot.Channel, response)))
+					log.Println(response)
 				}
 			}
 			continue

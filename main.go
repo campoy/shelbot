@@ -32,12 +32,6 @@ type Pair struct {
 	Value int
 }
 
-type PairList []Pair
-
-func (p PairList) Len() int           { return len(p) }
-func (p PairList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
-func (p PairList) Less(i, j int) bool { return p[i].Value < p[j].Value }
-
 func main() {
 	var bot *config
 	var k *karma
@@ -84,6 +78,7 @@ func main() {
 				f.Close()
 			}
 		}
+		logFile.Close()
 		os.Exit(0)
 	}()
 
@@ -170,5 +165,4 @@ func main() {
 			log.Fatalf("Error saving karma db: %s", err)
 		}
 	}
-	logFile.Close()
 }

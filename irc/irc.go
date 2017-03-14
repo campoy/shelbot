@@ -89,6 +89,7 @@ func (c *Conn) Quit(quitMessage string) {
 
 func (c *Conn) Listen() {
 	c.wg.Add(1)
+	defer c.wg.Done()
 	reader := bufio.NewReader(c.conn)
 	response := textproto.NewReader(reader)
 	Debug.Println("Ready to Listen")
@@ -100,6 +101,9 @@ func (c *Conn) Listen() {
 		default:
 			line, err := response.ReadLine()
 			if err != nil {
+				if strings.Contains(err.Error(), "use of closed network connection") {
+					return
+				}
 				Debug.Println("Error calling ReadLine()")
 				Debug.Fatalln(err)
 			}

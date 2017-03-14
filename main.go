@@ -37,18 +37,25 @@ func main() {
 	var conn *irc.Conn
 	var k *karma
 	var err error
+	var logFile *os.File
 	var karmaFunc func(string) int
-
-	logFile, err := os.OpenFile(filepath.Join(homeDir, ".shelbot.log"), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.SetOutput(logFile)
 
 	confFile := flag.String("config", filepath.Join(homeDir, ".shelbot.conf"), "config file to be used with shelbot")
 	karmaFile := flag.String("karmaFile", filepath.Join(homeDir, ".shelbot.json"), "karma db file")
+	debug := flag.Bool("debug", false, "Enable debug (print log to screen)")
 	v := flag.Bool("v", false, "Prints Shelbot version")
 	flag.Parse()
+
+	if !*debug {
+		logFile, err = os.OpenFile(filepath.Join(homeDir, ".shelbot.log"), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.SetOutput(logFile)
+		irc.Debug.SetOutput(logFile)
+	} else {
+		irc.Debug.SetOutput(os.Stdout)
+	}
 
 	if *v {
 		fmt.Println("Shelbot version " + version)
@@ -64,7 +71,6 @@ func main() {
 	}
 
 	conn = irc.New(bot.Server, bot.Port, bot.Nick, bot.User)
-	irc.Debug.SetOutput(logFile)
 
 	if err = conn.Connect(); err != nil {
 		log.Fatal(err)
@@ -81,7 +87,9 @@ func main() {
 				f.Close()
 			}
 		}
-		logFile.Close()
+		if !*debug {
+			logFile.Close()
+		}
 		os.Exit(0)
 	}()
 

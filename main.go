@@ -12,7 +12,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/alsm/shelbot/irc"
+	"github.com/davidjpeacock/shelbot/irc"
 )
 
 const version = "1.4.0"

@@ -1,9 +1,0 @@
-language: go
-notifications:
-    email:
-      - david.j.peacock@gmail.com
-    irc:
-      channels:
-        - "irc.sackheads.org#shelly"
-      use_notice: true
-      skip_join: true

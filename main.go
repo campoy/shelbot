@@ -1,11 +1,9 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
 	"log"
-	"net/textproto"
 	"os"
 	"os/signal"
 	"os/user"
@@ -13,6 +11,8 @@ import (
 	"sort"
 	"strings"
 	"syscall"
+
+	"github.com/alsm/shelbot/irc"
 )
 
 const version = "1.4.0"
@@ -34,6 +34,7 @@ type Pair struct {
 
 func main() {
 	var bot *config
+	var conn *irc.Conn
 	var k *karma
 	var err error
 	var karmaFunc func(string) int
@@ -62,7 +63,10 @@ func main() {
 		log.Fatalf("Error loading karma DB: %s", err)
 	}
 
-	if err = bot.connect(); err != nil {
+	conn = irc.New(bot.Server, bot.Port, bot.Nick, bot.User)
+	irc.Debug.SetOutput(logFile)
+
+	if err = conn.Connect(); err != nil {
 		log.Fatal(err)
 	}
 
@@ -71,8 +75,7 @@ func main() {
 		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 		<-c
 		log.Println("Received SIGTERM, exiting")
-		bot.conn.Write([]byte("QUIT :Bazinga!\r\n"))
-		bot.conn.Close()
+		conn.Quit("Bazinga!")
 		if err = k.save(); err == nil {
 			if f, ok := k.dbFile.(*os.File); ok {
 				f.Close()
@@ -82,53 +85,42 @@ func main() {
 		os.Exit(0)
 	}()
 
-	bot.conn.Write([]byte("USER " + bot.Nick + " 8 * :" + bot.User + "\r\n"))
-	bot.conn.Write([]byte("NICK " + bot.Nick + "\r\n"))
-	bot.conn.Write([]byte("JOIN " + bot.Channel + "\r\n"))
-	bot.conn.Write([]byte("PRIVMSG " + bot.Channel + " :Shelbot version " + version + " reporting for duty.\r\n"))
+	conn.Join(bot.Channel, "")
+	conn.PrivMsg(bot.Channel, fmt.Sprintf("%s version %s reporting for duty", bot.Nick, version))
 
-	reader := bufio.NewReader(bot.conn)
-	response := textproto.NewReader(reader)
-	for {
-		line, err := response.ReadLine()
-		if err != nil {
-			break
-		}
-		log.Println(line)
+	go conn.Listen()
 
-		lineElements := strings.Fields(line)
-		if lineElements[0] == "PING" {
-			bot.conn.Write([]byte("PONG " + lineElements[1] + "\r\n"))
-			log.Println("PONG " + lineElements[1])
-			continue
-		}
+	for msg := range conn.PrivMessages {
+		lineElements := strings.Fields(msg.Text)
 
-		if lineElements[1] == "PRIVMSG" && lineElements[3] == ":shelbot" {
-			if lineElements[4] == "help" {
-				bot.conn.Write([]byte("PRIVMSG " + bot.Channel + " :Shelbot commands available: \"help\", \"version\", \"query item\", \"topten\", \"bottomten\".\r\n"))
-				bot.conn.Write([]byte("PRIVMSG " + bot.Channel + " :Karma can be incremented idiomatically: \"foo++\" and \"bar--\".\r\n"))
+		if lineElements[0] == bot.Nick {
+			if lineElements[1] == "help" {
+				conn.PrivMsg(bot.Channel, fmt.Sprintf("%s commands available: \"help\", \"version\", \"query item\", \"topten\", \"bottomten\".", bot.Nick))
+				conn.PrivMsg(bot.Channel, "Karma can be incremented idiomatically: \"foo++\" and \"bar--\".")
 				log.Println("Shelbot help provided.")
 			}
 
-			if lineElements[4] == "version" {
-				bot.conn.Write([]byte("PRIVMSG " + bot.Channel + " :Shelbot version " + version + ".\r\n"))
+			if lineElements[1] == "version" {
+				conn.PrivMsg(bot.Channel, fmt.Sprintf("%s version %s.", bot.Nick, version))
 				log.Println("Shelbot version " + version)
 			}
 
-			if lineElements[4] == "query" {
-				karmaValue := k.query(lineElements[5])
-				response := fmt.Sprintf("Karma for %s is %d.", lineElements[5], karmaValue)
-				bot.conn.Write([]byte(fmt.Sprintf("PRIVMSG %s :%s\r\n", bot.Channel, response)))
-				log.Println(response)
+			if lineElements[1] == "query" && len(lineElements) > 2 {
+				for _, q := range lineElements[2:] {
+					karmaValue := k.query(q)
+					response := fmt.Sprintf("Karma for %s is %d.", q, karmaValue)
+					conn.PrivMsg(bot.Channel, response)
+					log.Println(response)
+				}
 			}
 
-			if lineElements[4] == "topten" || lineElements[4] == "bottomten" {
+			if lineElements[1] == "topten" || lineElements[1] == "bottomten" {
 				var p []Pair
 				for k, v := range k.db {
 					p = append(p, Pair{k, v})
 				}
 
-				switch lineElements[4] {
+				switch lineElements[1] {
 				case "topten":
 					sort.Slice(p, func(i, j int) bool { return p[i].Value > p[j].Value })
 				case "bottomten":
@@ -137,28 +129,28 @@ func main() {
 
 				for i := 0; i < 10 && i < len(p); i++ {
 					response := fmt.Sprintf("Karma for %s is %d.", p[i].Key, p[i].Value)
-					bot.conn.Write([]byte(fmt.Sprintf("PRIVMSG %s :%s\r\n", bot.Channel, response)))
+					conn.PrivMsg(bot.Channel, response)
 					log.Println(response)
 				}
 			}
 			continue
 		}
 
-		if !strings.HasSuffix(line, "++") && !strings.HasSuffix(line, "--") || len(lineElements) < 2 {
+		if !strings.HasSuffix(msg.Text, "++") && !strings.HasSuffix(msg.Text, "--") {
 			continue
 		}
 
-		var handle = strings.Trim(lineElements[len(lineElements)-1], ":+-")
+		var handle = strings.Trim(lineElements[len(lineElements)-1], "+-")
 
-		if strings.HasSuffix(line, "++") {
+		if strings.HasSuffix(msg.Text, "++") {
 			karmaFunc = k.increment
-		} else if strings.HasSuffix(line, "--") {
+		} else if strings.HasSuffix(msg.Text, "--") {
 			karmaFunc = k.decrement
 		}
 
 		karmaTotal := karmaFunc(handle)
 		response := fmt.Sprintf("Karma for %s now %d", handle, karmaTotal)
-		bot.conn.Write([]byte(fmt.Sprintf("PRIVMSG %s :%s\r\n", bot.Channel, response)))
+		conn.PrivMsg(bot.Channel, response)
 		log.Println(response)
 
 		if err = k.save(); err != nil {

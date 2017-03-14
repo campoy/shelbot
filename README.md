@@ -36,13 +36,8 @@ In channel, you can invoke shelbot commands as follows.
 
 `shelbot help`
 
-shelbot commands available: "help", "version", "query item".
-
-Increasing and decreasing karma is done idiomatically.
-
-`string++`
-
-`string--`
+shelbot commands available: "help", "version", "query item", "topten", "bottomten"
+Karma can be adjusted thusly: "foo++" and "bar--"
 
 For data persistence, Shelbot stores karma as a JSON in the default location`~/.shelbot.json`, this can be configured with the command line option `-karmaFile <file>`
 

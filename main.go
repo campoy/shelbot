@@ -15,7 +15,7 @@ import (
 	"github.com/davidjpeacock/shelbot/irc"
 )
 
-const version = "1.4.0"
+const version = "2.0.0"
 
 var homeDir string
 
@@ -95,8 +95,8 @@ func main() {
 
 		if lineElements[0] == bot.Nick {
 			if lineElements[1] == "help" {
-				conn.PrivMsg(bot.Channel, fmt.Sprintf("%s commands available: \"help\", \"version\", \"query item\", \"topten\", \"bottomten\".", bot.Nick))
-				conn.PrivMsg(bot.Channel, "Karma can be incremented idiomatically: \"foo++\" and \"bar--\".")
+				conn.PrivMsg(bot.Channel, fmt.Sprintf("%s commands available: \"help\", \"version\", \"query item\", \"topten\", \"bottomten\"", bot.Nick))
+				conn.PrivMsg(bot.Channel, "Karma can be adjusted thusly: \"foo++\" and \"bar--\"")
 				log.Println("Shelbot help provided.")
 			}
 

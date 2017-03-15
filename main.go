@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/davidjpeacock/shelbot/irc"
 )
@@ -21,6 +22,7 @@ var (
 	bot     *config
 	conn    *irc.Conn
 	k       *karma
+	limits  = make(map[string]time.Time)
 )
 
 func init() {
@@ -122,14 +124,21 @@ func main() {
 		default:
 			continue
 		}
+		if lastK, ok := limits[msg.User]; (ok && lastK.Add(10*time.Second).Before(time.Now())) || !ok {
+			karmaTotal := karmaFunc(handle)
+			response := fmt.Sprintf("Karma for %s now %d", handle, karmaTotal)
+			conn.PrivMsg(bot.Channel, response)
+			log.Println(response)
 
-		karmaTotal := karmaFunc(handle)
-		response := fmt.Sprintf("Karma for %s now %d", handle, karmaTotal)
-		conn.PrivMsg(bot.Channel, response)
-		log.Println(response)
-
-		if err = k.save(); err != nil {
-			log.Fatalf("Error saving karma db: %s", err)
+			if err = k.save(); err != nil {
+				log.Fatalf("Error saving karma db: %s", err)
+			}
+			limits[msg.User] = time.Now()
+		} else if !lastK.Add(10 * time.Second).Before(time.Now()) {
+			nextK := int(lastK.Add(10 * time.Second).Sub(time.Now()).Seconds())
+			conn.PrivMsg(bot.Channel, fmt.Sprintf("%s: 1 karma every 10 seconds, please wait %d seconds", msg.Nick, nextK))
+			log.Println(msg.Nick, "has already sent a karma message in the last 10 seconds")
 		}
+
 	}
 }

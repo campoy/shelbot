@@ -8,19 +8,20 @@ import (
 	"os/signal"
 	"os/user"
 	"path/filepath"
-	"sort"
-	"strconv"
 	"strings"
 	"syscall"
 
 	"github.com/davidjpeacock/shelbot/irc"
-
-	"github.com/davidjpeacock/conversions"
 )
 
-const version = "2.1.1"
+const Version = "2.1.1"
 
-var homeDir string
+var (
+	homeDir string
+	bot     *config
+	conn    *irc.Conn
+	k       *karma
+)
 
 func init() {
 	usr, err := user.Current()
@@ -36,9 +37,6 @@ type Pair struct {
 }
 
 func main() {
-	var bot *config
-	var conn *irc.Conn
-	var k *karma
 	var err error
 	var logFile *os.File
 	var karmaFunc func(string) int
@@ -61,7 +59,7 @@ func main() {
 	}
 
 	if *v {
-		fmt.Println("Shelbot version " + version)
+		fmt.Println("Shelbot version " + Version)
 		return
 	}
 
@@ -97,7 +95,7 @@ func main() {
 	}()
 
 	conn.Join(bot.Channel, "")
-	conn.PrivMsg(bot.Channel, fmt.Sprintf("%s version %s reporting for duty", bot.Nick, version))
+	conn.PrivMsg(bot.Channel, fmt.Sprintf("%s version %s reporting for duty", bot.Nick, Version))
 
 	go conn.Listen()
 
@@ -105,122 +103,24 @@ func main() {
 		lineElements := strings.Fields(msg.Text)
 
 		if lineElements[0] == bot.Nick {
-			if lineElements[1] == "help" {
-				conn.PrivMsg(bot.Channel, fmt.Sprintf("%s commands available: \"help\", \"version\", \"query item\", \"topten\", \"bottomten\", \"convertmph\", \"convertkmh\", \"convertc\", \"convertf\"", bot.Nick))
-				conn.PrivMsg(bot.Channel, "Karma can be adjusted thusly: \"foo++\" and \"bar--\"")
-				log.Println("Shelbot help provided.")
+
+			if commandFunc, ok := commands[lineElements[1]]; ok {
+				commandFunc(msg)
 			}
 
-			if lineElements[1] == "version" {
-				conn.PrivMsg(bot.Channel, fmt.Sprintf("%s version %s.", bot.Nick, version))
-				log.Println("Shelbot version " + version)
-			}
-
-			if lineElements[1] == "convertmph" {
-				if len(lineElements) < 3 {
-					response := fmt.Sprintf("Please provide a value.")
-					conn.PrivMsg(bot.Channel, response)
-					log.Println(response)
-				} else {
-					i, _ := strconv.Atoi(lineElements[2])
-					mph := conversions.MPH(i)
-					kmh := conversions.MPHToKMH(mph)
-
-					response := fmt.Sprintf("%s is %s", mph, kmh)
-					conn.PrivMsg(bot.Channel, response)
-					log.Println(response)
-				}
-			}
-
-			if lineElements[1] == "convertkmh" {
-				if len(lineElements) < 3 {
-					response := fmt.Sprintf("Please provide a value.")
-					conn.PrivMsg(bot.Channel, response)
-					log.Println(response)
-				} else {
-					i, _ := strconv.Atoi(lineElements[2])
-					kmh := conversions.KMH(i)
-					mph := conversions.KMHToMPH(kmh)
-
-					response := fmt.Sprintf("%s is %s", kmh, mph)
-					conn.PrivMsg(bot.Channel, response)
-					log.Println(response)
-				}
-			}
-
-			if lineElements[1] == "convertc" {
-				if len(lineElements) < 3 {
-					response := fmt.Sprintf("Please provide a value.")
-					conn.PrivMsg(bot.Channel, response)
-					log.Println(response)
-				} else {
-					i, _ := strconv.Atoi(lineElements[2])
-					c := conversions.Celsius(i)
-					f := conversions.CelsiusToFahrenheit(c)
-
-					response := fmt.Sprintf("%s is %s", c, f)
-					conn.PrivMsg(bot.Channel, response)
-					log.Println(response)
-				}
-			}
-
-			if lineElements[1] == "convertf" {
-				if len(lineElements) < 3 {
-					response := fmt.Sprintf("Please provide a value.")
-					conn.PrivMsg(bot.Channel, response)
-					log.Println(response)
-				} else {
-					i, _ := strconv.Atoi(lineElements[2])
-					f := conversions.Fahrenheit(i)
-					c := conversions.FahrenheitToCelsius(f)
-
-					response := fmt.Sprintf("%s is %s", f, c)
-					conn.PrivMsg(bot.Channel, response)
-					log.Println(response)
-				}
-			}
-
-			if lineElements[1] == "query" && len(lineElements) > 2 {
-				for _, q := range lineElements[2:] {
-					karmaValue := k.query(q)
-					response := fmt.Sprintf("Karma for %s is %d.", q, karmaValue)
-					conn.PrivMsg(bot.Channel, response)
-					log.Println(response)
-				}
-			}
-
-			if lineElements[1] == "topten" || lineElements[1] == "bottomten" {
-				var p []Pair
-				for k, v := range k.db {
-					p = append(p, Pair{k, v})
-				}
-
-				switch lineElements[1] {
-				case "topten":
-					sort.Slice(p, func(i, j int) bool { return p[i].Value > p[j].Value })
-				case "bottomten":
-					sort.Slice(p, func(i, j int) bool { return p[i].Value < p[j].Value })
-				}
-
-				for i := 0; i < 10 && i < len(p); i++ {
-					response := fmt.Sprintf("Karma for %s is %d.", p[i].Key, p[i].Value)
-					conn.PrivMsg(bot.Channel, response)
-					log.Println(response)
-				}
-			}
 			continue
 		}
 
-		if !strings.HasSuffix(msg.Text, "++") && !strings.HasSuffix(msg.Text, "--") {
-			continue
-		}
-
-		var handle = strings.Trim(lineElements[len(lineElements)-1], "+-")
-
-		if strings.HasSuffix(msg.Text, "++") {
+		var handle string
+		switch {
+		case strings.HasSuffix(msg.Text, "++"):
+			handle = strings.TrimSuffix(lineElements[len(lineElements)-1], "++")
 			karmaFunc = k.increment
-		} else if strings.HasSuffix(msg.Text, "--") {
+		case strings.HasSuffix(msg.Text, "--"):
+			handle = strings.TrimSuffix(lineElements[len(lineElements)-1], "++")
 			karmaFunc = k.decrement
+		default:
+			continue
 		}
 
 		karmaTotal := karmaFunc(handle)

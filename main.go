@@ -18,7 +18,7 @@ import (
 	"github.com/davidjpeacock/conversions"
 )
 
-const version = "2.1.0"
+const version = "2.1.1"
 
 var homeDir string
 
@@ -117,43 +117,67 @@ func main() {
 			}
 
 			if lineElements[1] == "convertmph" {
-				i, _ := strconv.Atoi(lineElements[2])
-				mph := conversions.MPH(i)
-				kmh := conversions.MPHToKMH(mph)
+				if len(lineElements) < 3 {
+					response := fmt.Sprintf("Please provide a value.")
+					conn.PrivMsg(bot.Channel, response)
+					log.Println(response)
+				} else {
+					i, _ := strconv.Atoi(lineElements[2])
+					mph := conversions.MPH(i)
+					kmh := conversions.MPHToKMH(mph)
 
-				response := fmt.Sprintf("%s is %s", mph, kmh)
-				conn.PrivMsg(bot.Channel, response)
-				log.Println(response)
+					response := fmt.Sprintf("%s is %s", mph, kmh)
+					conn.PrivMsg(bot.Channel, response)
+					log.Println(response)
+				}
 			}
 
 			if lineElements[1] == "convertkmh" {
-				i, _ := strconv.Atoi(lineElements[2])
-				kmh := conversions.KMH(i)
-				mph := conversions.KMHToMPH(kmh)
+				if len(lineElements) < 3 {
+					response := fmt.Sprintf("Please provide a value.")
+					conn.PrivMsg(bot.Channel, response)
+					log.Println(response)
+				} else {
+					i, _ := strconv.Atoi(lineElements[2])
+					kmh := conversions.KMH(i)
+					mph := conversions.KMHToMPH(kmh)
 
-				response := fmt.Sprintf("%s is %s", kmh, mph)
-				conn.PrivMsg(bot.Channel, response)
-				log.Println(response)
+					response := fmt.Sprintf("%s is %s", kmh, mph)
+					conn.PrivMsg(bot.Channel, response)
+					log.Println(response)
+				}
 			}
 
 			if lineElements[1] == "convertc" {
-				i, _ := strconv.Atoi(lineElements[2])
-				c := conversions.Celsius(i)
-				f := conversions.CelsiusToFahrenheit(c)
+				if len(lineElements) < 3 {
+					response := fmt.Sprintf("Please provide a value.")
+					conn.PrivMsg(bot.Channel, response)
+					log.Println(response)
+				} else {
+					i, _ := strconv.Atoi(lineElements[2])
+					c := conversions.Celsius(i)
+					f := conversions.CelsiusToFahrenheit(c)
 
-				response := fmt.Sprintf("%s is %s", c, f)
-				conn.PrivMsg(bot.Channel, response)
-				log.Println(response)
+					response := fmt.Sprintf("%s is %s", c, f)
+					conn.PrivMsg(bot.Channel, response)
+					log.Println(response)
+				}
 			}
 
 			if lineElements[1] == "convertf" {
-				i, _ := strconv.Atoi(lineElements[2])
-				f := conversions.Fahrenheit(i)
-				c := conversions.FahrenheitToCelsius(f)
+				if len(lineElements) < 3 {
+					response := fmt.Sprintf("Please provide a value.")
+					conn.PrivMsg(bot.Channel, response)
+					log.Println(response)
+				} else {
+					i, _ := strconv.Atoi(lineElements[2])
+					f := conversions.Fahrenheit(i)
+					c := conversions.FahrenheitToCelsius(f)
 
-				response := fmt.Sprintf("%s is %s", f, c)
-				conn.PrivMsg(bot.Channel, response)
-				log.Println(response)
+					response := fmt.Sprintf("%s is %s", f, c)
+					conn.PrivMsg(bot.Channel, response)
+					log.Println(response)
+				}
 			}
 
 			if lineElements[1] == "query" && len(lineElements) > 2 {

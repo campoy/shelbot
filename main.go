@@ -9,13 +9,16 @@ import (
 	"os/user"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"syscall"
 
 	"github.com/davidjpeacock/shelbot/irc"
+
+	"github.com/davidjpeacock/conversions"
 )
 
-const version = "2.0.1"
+const version = "2.1.0"
 
 var homeDir string
 
@@ -103,7 +106,7 @@ func main() {
 
 		if lineElements[0] == bot.Nick {
 			if lineElements[1] == "help" {
-				conn.PrivMsg(bot.Channel, fmt.Sprintf("%s commands available: \"help\", \"version\", \"query item\", \"topten\", \"bottomten\"", bot.Nick))
+				conn.PrivMsg(bot.Channel, fmt.Sprintf("%s commands available: \"help\", \"version\", \"query item\", \"topten\", \"bottomten\", \"convertmph\", \"convertkmh\", \"convertc\", \"convertf\"", bot.Nick))
 				conn.PrivMsg(bot.Channel, "Karma can be adjusted thusly: \"foo++\" and \"bar--\"")
 				log.Println("Shelbot help provided.")
 			}
@@ -111,6 +114,46 @@ func main() {
 			if lineElements[1] == "version" {
 				conn.PrivMsg(bot.Channel, fmt.Sprintf("%s version %s.", bot.Nick, version))
 				log.Println("Shelbot version " + version)
+			}
+
+			if lineElements[1] == "convertmph" {
+				i, _ := strconv.Atoi(lineElements[2])
+				mph := conversions.MPH(i)
+				kmh := conversions.MPHToKMH(mph)
+
+				response := fmt.Sprintf("%s is %s", mph, kmh)
+				conn.PrivMsg(bot.Channel, response)
+				log.Println(response)
+			}
+
+			if lineElements[1] == "convertkmh" {
+				i, _ := strconv.Atoi(lineElements[2])
+				kmh := conversions.KMH(i)
+				mph := conversions.KMHToMPH(kmh)
+
+				response := fmt.Sprintf("%s is %s", kmh, mph)
+				conn.PrivMsg(bot.Channel, response)
+				log.Println(response)
+			}
+
+			if lineElements[1] == "convertc" {
+				i, _ := strconv.Atoi(lineElements[2])
+				c := conversions.Celsius(i)
+				f := conversions.CelsiusToFahrenheit(c)
+
+				response := fmt.Sprintf("%s is %s", c, f)
+				conn.PrivMsg(bot.Channel, response)
+				log.Println(response)
+			}
+
+			if lineElements[1] == "convertf" {
+				i, _ := strconv.Atoi(lineElements[2])
+				f := conversions.Fahrenheit(i)
+				c := conversions.FahrenheitToCelsius(f)
+
+				response := fmt.Sprintf("%s is %s", f, c)
+				conn.PrivMsg(bot.Channel, response)
+				log.Println(response)
 			}
 
 			if lineElements[1] == "query" && len(lineElements) > 2 {

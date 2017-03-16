@@ -15,7 +15,7 @@ import (
 	"github.com/davidjpeacock/shelbot/irc"
 )
 
-const Version = "2.1.1"
+const Version = "2.2.0"
 
 var (
 	homeDir string
@@ -135,9 +135,6 @@ func main() {
 			}
 			limits[msg.User] = time.Now()
 		} else if !lastK.Add(60 * time.Second).Before(time.Now()) {
-			nextK := int(lastK.Add(60 * time.Second).Sub(time.Now()).Seconds())
-			// I figure removing channel message may be a subtler form of denial; ignoring as opposed to openly defying the user
-			// conn.PrivMsg(bot.Channel, fmt.Sprintf("%s: 1 karma every 10 seconds, please wait %d seconds", msg.Nick, nextK))
 			log.Println(msg.Nick, "has already sent a karma message in the last 60 seconds")
 		}
 

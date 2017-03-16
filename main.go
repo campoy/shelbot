@@ -124,7 +124,7 @@ func main() {
 		default:
 			continue
 		}
-		if lastK, ok := limits[msg.User]; (ok && lastK.Add(10*time.Second).Before(time.Now())) || !ok {
+		if lastK, ok := limits[msg.User]; (ok && lastK.Add(60*time.Second).Before(time.Now())) || !ok {
 			karmaTotal := karmaFunc(handle)
 			response := fmt.Sprintf("Karma for %s now %d", handle, karmaTotal)
 			conn.PrivMsg(bot.Channel, response)
@@ -134,10 +134,11 @@ func main() {
 				log.Fatalf("Error saving karma db: %s", err)
 			}
 			limits[msg.User] = time.Now()
-		} else if !lastK.Add(10 * time.Second).Before(time.Now()) {
-			nextK := int(lastK.Add(10 * time.Second).Sub(time.Now()).Seconds())
-			conn.PrivMsg(bot.Channel, fmt.Sprintf("%s: 1 karma every 10 seconds, please wait %d seconds", msg.Nick, nextK))
-			log.Println(msg.Nick, "has already sent a karma message in the last 10 seconds")
+		} else if !lastK.Add(60 * time.Second).Before(time.Now()) {
+			nextK := int(lastK.Add(60 * time.Second).Sub(time.Now()).Seconds())
+			// I figure removing channel message may be a subtler form of denial; ignoring as opposed to openly defying the user
+			// conn.PrivMsg(bot.Channel, fmt.Sprintf("%s: 1 karma every 10 seconds, please wait %d seconds", msg.Nick, nextK))
+			log.Println(msg.Nick, "has already sent a karma message in the last 60 seconds")
 		}
 
 	}

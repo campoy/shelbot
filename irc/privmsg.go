@@ -5,10 +5,11 @@ import (
 )
 
 type PrivMsg struct {
-	User    string
-	Nick    string
-	Channel string
-	Text    string
+	User         string
+	Nick         string
+	Channel      string
+	Text         string
+	ReplyChannel string
 }
 
 func privMsgFromMessage(m *Message) (p *PrivMsg) {
@@ -22,6 +23,11 @@ func privMsgFromMessage(m *Message) (p *PrivMsg) {
 	channelAndText := strings.SplitN(m.Parameters, ":", 2)
 	p.Channel = strings.TrimSpace(channelAndText[0])
 	p.Text = channelAndText[1]
+	if !strings.HasPrefix(p.Channel, "#") {
+		p.ReplyChannel = p.Nick
+	} else {
+		p.ReplyChannel = p.Channel
+	}
 
 	return
 }

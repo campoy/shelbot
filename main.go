@@ -15,7 +15,7 @@ import (
 	"github.com/davidjpeacock/shelbot/irc"
 )
 
-const Version = "2.2.0"
+const Version = "2.2.1"
 
 var (
 	homeDir string
@@ -105,11 +105,16 @@ func main() {
 		lineElements := strings.Fields(msg.Text)
 
 		if lineElements[0] == bot.Nick {
-
 			if commandFunc, ok := commands[lineElements[1]]; ok {
+				msg.Text = strings.Join(lineElements[1:], " ")
 				commandFunc(msg)
 			}
 
+			continue
+		}
+
+		if commandFunc, ok := commands[lineElements[0]]; ok && !strings.HasPrefix(msg.Channel, "#") {
+			commandFunc(msg)
 			continue
 		}
 
@@ -127,7 +132,7 @@ func main() {
 		if lastK, ok := limits[msg.User]; (ok && lastK.Add(60*time.Second).Before(time.Now())) || !ok {
 			karmaTotal := karmaFunc(handle)
 			response := fmt.Sprintf("Karma for %s now %d", handle, karmaTotal)
-			conn.PrivMsg(bot.Channel, response)
+			conn.PrivMsg(msg.ReplyChannel, response)
 			log.Println(response)
 
 			if err = k.save(); err != nil {

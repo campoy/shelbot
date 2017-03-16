@@ -30,21 +30,21 @@ func help(m *irc.PrivMsg) {
 	for com := range commands {
 		coms = append(coms, fmt.Sprintf("\"%s\"", com))
 	}
-	conn.PrivMsg(bot.Channel, fmt.Sprintf("%s commands available: %s", bot.Nick, strings.Join(coms, ", ")))
-	conn.PrivMsg(bot.Channel, "Karma can be adjusted thusly: \"foo++\" and \"bar--\"")
+	conn.PrivMsg(m.ReplyChannel, fmt.Sprintf("%s commands available: %s", bot.Nick, strings.Join(coms, ", ")))
+	conn.PrivMsg(m.ReplyChannel, "Karma can be adjusted thusly: \"foo++\" and \"bar--\"")
 	log.Println("Shelbot help provided.")
 }
 
 func version(m *irc.PrivMsg) {
-	conn.PrivMsg(bot.Channel, fmt.Sprintf("%s version %s.", bot.Nick, Version))
+	conn.PrivMsg(m.ReplyChannel, fmt.Sprintf("%s version %s.", bot.Nick, Version))
 	log.Println("Shelbot version " + Version)
 }
 
 func convertmph(m *irc.PrivMsg) {
 	lineElements := strings.Fields(m.Text)
-	if len(lineElements) < 3 {
+	if len(lineElements) < 2 {
 		response := fmt.Sprintf("Please provide a value.")
-		conn.PrivMsg(bot.Channel, response)
+		conn.PrivMsg(m.ReplyChannel, response)
 		log.Println(response)
 	} else {
 		i, _ := strconv.Atoi(lineElements[2])
@@ -52,16 +52,16 @@ func convertmph(m *irc.PrivMsg) {
 		kmh := conversions.MPHToKMH(mph)
 
 		response := fmt.Sprintf("%s is %s", mph, kmh)
-		conn.PrivMsg(bot.Channel, response)
+		conn.PrivMsg(m.ReplyChannel, response)
 		log.Println(response)
 	}
 }
 
 func convertkmh(m *irc.PrivMsg) {
 	lineElements := strings.Fields(m.Text)
-	if len(lineElements) < 3 {
+	if len(lineElements) < 2 {
 		response := fmt.Sprintf("Please provide a value.")
-		conn.PrivMsg(bot.Channel, response)
+		conn.PrivMsg(m.ReplyChannel, response)
 		log.Println(response)
 	} else {
 		i, _ := strconv.Atoi(lineElements[2])
@@ -69,16 +69,16 @@ func convertkmh(m *irc.PrivMsg) {
 		mph := conversions.KMHToMPH(kmh)
 
 		response := fmt.Sprintf("%s is %s", kmh, mph)
-		conn.PrivMsg(bot.Channel, response)
+		conn.PrivMsg(m.ReplyChannel, response)
 		log.Println(response)
 	}
 }
 
 func convertc(m *irc.PrivMsg) {
 	lineElements := strings.Fields(m.Text)
-	if len(lineElements) < 3 {
+	if len(lineElements) < 2 {
 		response := fmt.Sprintf("Please provide a value.")
-		conn.PrivMsg(bot.Channel, response)
+		conn.PrivMsg(m.ReplyChannel, response)
 		log.Println(response)
 	} else {
 		i, _ := strconv.Atoi(lineElements[2])
@@ -86,16 +86,16 @@ func convertc(m *irc.PrivMsg) {
 		f := conversions.CelsiusToFahrenheit(c)
 
 		response := fmt.Sprintf("%s is %s", c, f)
-		conn.PrivMsg(bot.Channel, response)
+		conn.PrivMsg(m.ReplyChannel, response)
 		log.Println(response)
 	}
 }
 
 func convertf(m *irc.PrivMsg) {
 	lineElements := strings.Fields(m.Text)
-	if len(lineElements) < 3 {
+	if len(lineElements) < 2 {
 		response := fmt.Sprintf("Please provide a value.")
-		conn.PrivMsg(bot.Channel, response)
+		conn.PrivMsg(m.ReplyChannel, response)
 		log.Println(response)
 	} else {
 		i, _ := strconv.Atoi(lineElements[2])
@@ -103,18 +103,18 @@ func convertf(m *irc.PrivMsg) {
 		c := conversions.FahrenheitToCelsius(f)
 
 		response := fmt.Sprintf("%s is %s", f, c)
-		conn.PrivMsg(bot.Channel, response)
+		conn.PrivMsg(m.ReplyChannel, response)
 		log.Println(response)
 	}
 }
 
 func query(m *irc.PrivMsg) {
 	lineElements := strings.Fields(m.Text)
-	if len(lineElements) > 2 {
-		for _, q := range lineElements[2:] {
+	if len(lineElements) > 1 {
+		for _, q := range lineElements[1:] {
 			karmaValue := k.query(q)
 			response := fmt.Sprintf("Karma for %s is %d.", q, karmaValue)
-			conn.PrivMsg(bot.Channel, response)
+			conn.PrivMsg(m.ReplyChannel, response)
 			log.Println(response)
 		}
 	}
@@ -127,7 +127,7 @@ func ten(m *irc.PrivMsg) {
 		p = append(p, Pair{k, v})
 	}
 
-	switch lineElements[1] {
+	switch lineElements[0] {
 	case "topten":
 		sort.Slice(p, func(i, j int) bool { return p[i].Value > p[j].Value })
 	case "bottomten":
@@ -136,7 +136,7 @@ func ten(m *irc.PrivMsg) {
 
 	for i := 0; i < 10 && i < len(p); i++ {
 		response := fmt.Sprintf("Karma for %s is %d.", p[i].Key, p[i].Value)
-		conn.PrivMsg(bot.Channel, response)
+		conn.PrivMsg(m.ReplyChannel, response)
 		log.Println(response)
 	}
 }

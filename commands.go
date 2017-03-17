@@ -57,35 +57,64 @@ func geoip(m *irc.PrivMsg) {
 		log.Println(response)
 	} else {
 		ip := net.ParseIP(lineElements[1])
+		if ip == nil {
+			if ips, err := net.LookupIP(lineElements[1]); err != nil || len(ips) == 0 {
+				conn.PrivMsg(m.ReplyChannel, fmt.Sprintf("I'm sorry %s, %s doesn't seem to be a valid ip address or host", m.Nick, lineElements[1]))
+				return
+			} else {
+				ip = ips[0]
+				conn.PrivMsg(m.ReplyChannel, fmt.Sprintf("Resolved %s to %s", lineElements[1], ip))
+			}
+		}
 		record, err := db.City(ip)
 		if err != nil {
 			log.Fatal(err)
 		}
-		response := fmt.Sprintf("English city name: %v", record.City.Names["en"])
-		conn.PrivMsg(m.ReplyChannel, response)
-		log.Println(response)
-		response = fmt.Sprintf("English subdivision name: %v", record.Subdivisions[0].Names["en"])
-		conn.PrivMsg(m.ReplyChannel, response)
-		log.Println(response)
-		response = fmt.Sprintf("English country name: %v", record.Country.Names["en"])
-		conn.PrivMsg(m.ReplyChannel, response)
-		log.Println(response)
-		response = fmt.Sprintf("Japanese city name: %v", record.City.Names["ja"])
-		conn.PrivMsg(m.ReplyChannel, response)
-		log.Println(response)
-		response = fmt.Sprintf("Japanese subdivision name: %v", record.Subdivisions[0].Names["ja"])
-		conn.PrivMsg(m.ReplyChannel, response)
-		log.Println(response)
-		response = fmt.Sprintf("Japanese country name: %v", record.Country.Names["ja"])
-		conn.PrivMsg(m.ReplyChannel, response)
-		log.Println(response)
-		response = fmt.Sprintf("ISO country code: %v", record.Country.IsoCode)
+		if record == nil {
+			conn.PrivMsg(m.ReplyChannel, fmt.Sprintf("I'm sorry %s, I couldn't find any information for %s", m.Nick, lineElements[1]))
+			return
+		}
+		if cityName, ok := record.City.Names["en"]; ok {
+			response := fmt.Sprintf("English city name: %v", cityName)
+			conn.PrivMsg(m.ReplyChannel, response)
+			log.Println(response)
+		}
+		if record.Subdivisions != nil {
+			if subdivName, ok := record.Subdivisions[0].Names["en"]; ok {
+				response := fmt.Sprintf("English subdivision name: %v", subdivName)
+				conn.PrivMsg(m.ReplyChannel, response)
+				log.Println(response)
+			}
+		}
+		if cName, ok := record.Country.Names["en"]; ok {
+			response := fmt.Sprintf("English country name: %v", cName)
+			conn.PrivMsg(m.ReplyChannel, response)
+			log.Println(response)
+		}
+		if cityName, ok := record.City.Names["ja"]; ok {
+			response := fmt.Sprintf("Japanese city name: %v", cityName)
+			conn.PrivMsg(m.ReplyChannel, response)
+			log.Println(response)
+		}
+		if record.Subdivisions != nil {
+			if subdivName, ok := record.Subdivisions[0].Names["ja"]; ok {
+				response := fmt.Sprintf("Japanese subdivision name: %v", subdivName)
+				conn.PrivMsg(m.ReplyChannel, response)
+				log.Println(response)
+			}
+		}
+		if cName, ok := record.Country.Names["ja"]; ok {
+			response := fmt.Sprintf("Japanese country name: %v", cName)
+			conn.PrivMsg(m.ReplyChannel, response)
+			log.Println(response)
+		}
+		response := fmt.Sprintf("ISO country code: %v", record.Country.IsoCode)
 		conn.PrivMsg(m.ReplyChannel, response)
 		log.Println(response)
 		response = fmt.Sprintf("Time zone: %v", record.Location.TimeZone)
 		conn.PrivMsg(m.ReplyChannel, response)
 		log.Println(response)
-		response = fmt.Sprintf("Coodinates: %v, %v", record.Location.Latitude, record.Location.Longitude)
+		response = fmt.Sprintf("Coordinates: %v, %v", record.Location.Latitude, record.Location.Longitude)
 		conn.PrivMsg(m.ReplyChannel, response)
 		log.Println(response)
 		response = fmt.Sprintf("Google Maps: https://www.google.com/maps/@%v,%v,15z", record.Location.Latitude, record.Location.Longitude)

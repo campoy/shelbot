@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"net"
 	"sort"
 	"strconv"
 	"strings"
@@ -10,7 +11,7 @@ import (
 	"github.com/davidjpeacock/conversions"
 	"github.com/davidjpeacock/shelbot/irc"
 
-	geoip "github.com/RevH/ipinfo"
+	geoip2 "github.com/oschwald/geoip2-golang"
 )
 
 var commands = make(map[string]func(*irc.PrivMsg))
@@ -25,7 +26,7 @@ func init() {
 	commands["query"] = query
 	commands["topten"] = ten
 	commands["bottomten"] = ten
-	commands["ipinfo"] = ipinfo
+	commands["geoip"] = geoip
 }
 
 func help(m *irc.PrivMsg) {
@@ -43,18 +44,47 @@ func version(m *irc.PrivMsg) {
 	log.Println("Shelbot version " + Version)
 }
 
-func ipinfo(m *irc.PrivMsg) {
+func geoip(m *irc.PrivMsg) {
+	db, err := geoip2.Open("GeoLite2-City.mmdb")
+	if err != nil {
+		log.Fatal(err)
+	}
 	lineElements := strings.Fields(m.Text)
 	if len(lineElements) < 2 {
 		response := fmt.Sprintf("Please provide a value.")
 		conn.PrivMsg(m.ReplyChannel, response)
 		log.Println(response)
 	} else {
-		ipData, err := geoip.ForeignIP(lineElements[1])
+		ip := net.ParseIP(lineElements[1])
+		record, err := db.City(ip)
 		if err != nil {
-			log.Println(err)
+			log.Fatal(err)
 		}
-		response := fmt.Sprintf("%s", ipData)
+		response := fmt.Sprintf("English city name: %v", record.City.Names["en"])
+		conn.PrivMsg(m.ReplyChannel, response)
+		log.Println(response)
+		response = fmt.Sprintf("English subdivision name: %v", record.Subdivisions[0].Names["en"])
+		conn.PrivMsg(m.ReplyChannel, response)
+		log.Println(response)
+		response = fmt.Sprintf("English country name: %v", record.Country.Names["en"])
+		conn.PrivMsg(m.ReplyChannel, response)
+		log.Println(response)
+		response = fmt.Sprintf("Japanese city name: %v", record.City.Names["ja"])
+		conn.PrivMsg(m.ReplyChannel, response)
+		log.Println(response)
+		response = fmt.Sprintf("Japanese subdivision name: %v", record.Subdivisions[0].Names["ja"])
+		conn.PrivMsg(m.ReplyChannel, response)
+		log.Println(response)
+		response = fmt.Sprintf("Japanese country name: %v", record.Country.Names["ja"])
+		conn.PrivMsg(m.ReplyChannel, response)
+		log.Println(response)
+		response = fmt.Sprintf("ISO country code: %v", record.Country.IsoCode)
+		conn.PrivMsg(m.ReplyChannel, response)
+		log.Println(response)
+		response = fmt.Sprintf("Time zone: %v", record.Location.TimeZone)
+		conn.PrivMsg(m.ReplyChannel, response)
+		log.Println(response)
+		response = fmt.Sprintf("Coodinates: %v, %v", record.Location.Latitude, record.Location.Longitude)
 		conn.PrivMsg(m.ReplyChannel, response)
 		log.Println(response)
 	}

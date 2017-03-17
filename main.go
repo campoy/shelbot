@@ -124,7 +124,7 @@ func main() {
 			handle = strings.TrimSuffix(lineElements[len(lineElements)-1], "++")
 			karmaFunc = k.increment
 		case strings.HasSuffix(msg.Text, "--"):
-			handle = strings.TrimSuffix(lineElements[len(lineElements)-1], "++")
+			handle = strings.TrimSuffix(lineElements[len(lineElements)-1], "--")
 			karmaFunc = k.decrement
 		default:
 			continue

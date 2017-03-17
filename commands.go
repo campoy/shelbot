@@ -9,6 +9,8 @@ import (
 
 	"github.com/davidjpeacock/conversions"
 	"github.com/davidjpeacock/shelbot/irc"
+
+	geoip "github.com/RevH/ipinfo"
 )
 
 var commands = make(map[string]func(*irc.PrivMsg))
@@ -23,6 +25,7 @@ func init() {
 	commands["query"] = query
 	commands["topten"] = ten
 	commands["bottomten"] = ten
+	commands["ipinfo"] = ipinfo
 }
 
 func help(m *irc.PrivMsg) {
@@ -38,6 +41,36 @@ func help(m *irc.PrivMsg) {
 func version(m *irc.PrivMsg) {
 	conn.PrivMsg(m.ReplyChannel, fmt.Sprintf("%s version %s.", bot.Nick, Version))
 	log.Println("Shelbot version " + Version)
+}
+
+func ipinfo(m *irc.PrivMsg) {
+	lineElements := strings.Fields(m.Text)
+	if len(lineElements) < 2 {
+		response := fmt.Sprintf("Please provide a value.")
+		conn.PrivMsg(m.ReplyChannel, response)
+		log.Println(response)
+	} else {
+		/* Something is barfing here getting the IP; possibly the periods?
+		 *
+		panic: runtime error: index out of range
+
+		goroutine 1 [running]:
+		main.ipinfo(0xc42006d040)
+			/Users/peacock/go/src/github.com/davidjpeacock/shelbot/commands.go:58 +0x2e1
+		main.main()
+			/Users/peacock/go/src/github.com/davidjpeacock/shelbot/main.go:110 +0x1421
+		*/
+
+		ip := lineElements[2]
+		log.Println(ip) // this isn't getting a chance
+		ipData, err := geoip.ForeignIP(ip)
+		if err != nil {
+			log.Println(err)
+		}
+		response := fmt.Sprintf("%s", ipData)
+		conn.PrivMsg(m.ReplyChannel, response)
+		Debug.Println(response)
+	}
 }
 
 func convertmph(m *irc.PrivMsg) {

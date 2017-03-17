@@ -50,26 +50,13 @@ func ipinfo(m *irc.PrivMsg) {
 		conn.PrivMsg(m.ReplyChannel, response)
 		log.Println(response)
 	} else {
-		/* Something is barfing here getting the IP; possibly the periods?
-		 *
-		panic: runtime error: index out of range
-
-		goroutine 1 [running]:
-		main.ipinfo(0xc42006d040)
-			/Users/peacock/go/src/github.com/davidjpeacock/shelbot/commands.go:58 +0x2e1
-		main.main()
-			/Users/peacock/go/src/github.com/davidjpeacock/shelbot/main.go:110 +0x1421
-		*/
-
-		ip := lineElements[2]
-		log.Println(ip) // this isn't getting a chance
-		ipData, err := geoip.ForeignIP(ip)
+		ipData, err := geoip.ForeignIP(lineElements[1])
 		if err != nil {
 			log.Println(err)
 		}
 		response := fmt.Sprintf("%s", ipData)
 		conn.PrivMsg(m.ReplyChannel, response)
-		Debug.Println(response)
+		log.Println(response)
 	}
 }
 
@@ -80,7 +67,7 @@ func convertmph(m *irc.PrivMsg) {
 		conn.PrivMsg(m.ReplyChannel, response)
 		log.Println(response)
 	} else {
-		i, _ := strconv.Atoi(lineElements[2])
+		i, _ := strconv.Atoi(lineElements[1])
 		mph := conversions.MPH(i)
 		kmh := conversions.MPHToKMH(mph)
 
@@ -97,7 +84,7 @@ func convertkmh(m *irc.PrivMsg) {
 		conn.PrivMsg(m.ReplyChannel, response)
 		log.Println(response)
 	} else {
-		i, _ := strconv.Atoi(lineElements[2])
+		i, _ := strconv.Atoi(lineElements[1])
 		kmh := conversions.KMH(i)
 		mph := conversions.KMHToMPH(kmh)
 
@@ -114,7 +101,7 @@ func convertc(m *irc.PrivMsg) {
 		conn.PrivMsg(m.ReplyChannel, response)
 		log.Println(response)
 	} else {
-		i, _ := strconv.Atoi(lineElements[2])
+		i, _ := strconv.Atoi(lineElements[1])
 		c := conversions.Celsius(i)
 		f := conversions.CelsiusToFahrenheit(c)
 
@@ -131,7 +118,7 @@ func convertf(m *irc.PrivMsg) {
 		conn.PrivMsg(m.ReplyChannel, response)
 		log.Println(response)
 	} else {
-		i, _ := strconv.Atoi(lineElements[2])
+		i, _ := strconv.Atoi(lineElements[1])
 		f := conversions.Fahrenheit(i)
 		c := conversions.FahrenheitToCelsius(f)
 

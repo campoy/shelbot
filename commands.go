@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -45,7 +46,7 @@ func version(m *irc.PrivMsg) {
 }
 
 func geoip(m *irc.PrivMsg) {
-	db, err := geoip2.Open("GeoLite2-City.mmdb")
+	db, err := geoip2.Open(filepath.Join(homeDir, "GeoLite2-City.mmdb"))
 	if err != nil {
 		log.Fatal(err)
 	}

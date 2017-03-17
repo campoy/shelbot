@@ -88,6 +88,9 @@ func geoip(m *irc.PrivMsg) {
 		response = fmt.Sprintf("Coodinates: %v, %v", record.Location.Latitude, record.Location.Longitude)
 		conn.PrivMsg(m.ReplyChannel, response)
 		log.Println(response)
+		response = fmt.Sprintf("Google Maps: https://www.google.com/maps/@%v,%v,15z", record.Location.Latitude, record.Location.Longitude)
+		conn.PrivMsg(m.ReplyChannel, response)
+		log.Println(response)
 	}
 }
 

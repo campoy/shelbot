@@ -9,6 +9,7 @@ import (
 	"net/textproto"
 	"strings"
 	"sync"
+	"time"
 )
 
 var (
@@ -41,6 +42,7 @@ func New(server string, port uint16, nick string, realName string) *Conn {
 
 func (c *Conn) send(line string) {
 	c.conn.Write([]byte(fmt.Sprintf("%s\r\n", line)))
+	time.Sleep(250 * time.Millisecond)
 }
 
 func (c *Conn) Connect() error {
@@ -74,6 +76,25 @@ func (c *Conn) Part(channel string, partMessage string) {
 
 func (c *Conn) PrivMsg(target string, text string) {
 	c.send(fmt.Sprintf("PRIVMSG %s :%s", target, text))
+}
+
+func (c *Conn) PrivMsgs(target string, texts []string) {
+	for _, subText := range texts {
+		response := fmt.Sprintf("PRIVMSG %s :%s", target, subText)
+		for len(subText) > 0 {
+			if len(response) > 400 {
+				lastSpace := strings.LastIndex(response[:400], " ")
+				subText = response[lastSpace+1:]
+				response = response[:lastSpace]
+				c.send(response)
+			} else {
+				c.send(response)
+				subText = ""
+				continue
+			}
+			response = fmt.Sprintf("PRIVMSG %s :%s", target, subText)
+		}
+	}
 }
 
 func (c *Conn) Quit(quitMessage string) {

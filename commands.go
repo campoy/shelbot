@@ -1,13 +1,17 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"html"
 	"log"
 	"net"
+	"net/http"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/davidjpeacock/conversions"
 	"github.com/davidjpeacock/shelbot/irc"
@@ -28,6 +32,7 @@ func init() {
 	commands["topten"] = ten
 	commands["bottomten"] = ten
 	commands["geoip"] = geoip
+	commands["wiki"] = wiki
 }
 
 func help(m *irc.PrivMsg) {
@@ -221,5 +226,47 @@ func ten(m *irc.PrivMsg) {
 		response := fmt.Sprintf("Karma for %s is %d.", p[i].Key, p[i].Value)
 		conn.PrivMsg(m.ReplyChannel, response)
 		log.Println(response)
+	}
+}
+
+func wiki(m *irc.PrivMsg) {
+	var wikiLookup struct {
+		Batchcomplete string `json:"batchcomplete"`
+		Query         struct {
+			Pages map[string]struct {
+				Pageid               int       `json:"pageid"`
+				Ns                   int       `json:"ns"`
+				Title                string    `json:"title"`
+				Extract              string    `json:"extract"`
+				Contentmodel         string    `json:"contentmodel"`
+				Pagelanguage         string    `json:"pagelanguage"`
+				Pagelanguagehtmlcode string    `json:"pagelanguagehtmlcode"`
+				Pagelanguagedir      string    `json:"pagelanguagedir"`
+				Touched              time.Time `json:"touched"`
+				Lastrevid            int       `json:"lastrevid"`
+				Length               int       `json:"length"`
+				Fullurl              string    `json:"fullurl"`
+				Editurl              string    `json:"editurl"`
+				Canonicalurl         string    `json:"canonicalurl"`
+			} `json:"pages"`
+		} `json:"query"`
+	}
+
+	lineElements := strings.Fields(m.Text)
+
+	resp, err := http.Get("https://en.wikipedia.org/w/api.php?format=json&action=query&prop=extracts|info&redirects&exintro=&inprop=url&explaintext=&titles=" + html.EscapeString(strings.Join(lineElements[1:], " ")))
+	if err != nil || resp.StatusCode != 200 {
+		conn.PrivMsg(m.ReplyChannel, fmt.Sprintf("Sorry %s, there was an error looking up a wiki article on %s", m.Nick, strings.Join(lineElements[1:], " ")))
+		return
+	}
+	defer resp.Body.Close()
+	dec := json.NewDecoder(resp.Body)
+	if err := dec.Decode(&wikiLookup); err != nil {
+		conn.PrivMsg(m.ReplyChannel, fmt.Sprintf("Sorry %s, there was an error looking up a wiki article on %s", m.Nick, strings.Join(lineElements[1:], " ")))
+		return
+	}
+	for _, entry := range wikiLookup.Query.Pages {
+		conn.PrivMsgs(m.ReplyChannel, strings.Split(entry.Extract, "\n"))
+		conn.PrivMsg(m.ReplyChannel, entry.Fullurl)
 	}
 }

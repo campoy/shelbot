@@ -42,7 +42,7 @@ func New(server string, port uint16, nick string, realName string) *Conn {
 
 func (c *Conn) send(line string) {
 	c.conn.Write([]byte(fmt.Sprintf("%s\r\n", line)))
-	time.Sleep(250 * time.Millisecond)
+	time.Sleep(1000 * time.Millisecond)
 }
 
 func (c *Conn) Connect() error {

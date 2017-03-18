@@ -15,7 +15,7 @@ import (
 	"github.com/davidjpeacock/shelbot/irc"
 )
 
-const Version = "2.4.0"
+const Version = "2.4.1"
 
 var (
 	homeDir string

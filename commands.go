@@ -268,5 +268,6 @@ func wiki(m *irc.PrivMsg) {
 	for _, entry := range wikiLookup.Query.Pages {
 		conn.PrivMsgs(m.ReplyChannel, strings.Split(entry.Extract, "\n"))
 		conn.PrivMsg(m.ReplyChannel, entry.Fullurl)
+		log.Println("Wikipedia extract provided:", entry.Fullurl)
 	}
 }

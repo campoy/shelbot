@@ -22,6 +22,7 @@ var (
 	bot     *config
 	conn    *irc.Conn
 	k       *karma
+	apiKey  string
 	limits  = make(map[string]time.Time)
 )
 
@@ -47,6 +48,8 @@ func main() {
 	karmaFile := flag.String("karmaFile", filepath.Join(homeDir, ".shelbot.json"), "karma db file")
 	debug := flag.Bool("debug", false, "Enable debug (print log to screen)")
 	v := flag.Bool("v", false, "Prints Shelbot version")
+	airportFile := flag.String("airportFile", "airports.csv", "airport data csv file")
+	flag.StringVar(&apiKey, "forecastioKey", "", "Forcast.io API key")
 	flag.Parse()
 
 	if !*debug {
@@ -58,6 +61,10 @@ func main() {
 		irc.Debug.SetOutput(logFile)
 	} else {
 		irc.Debug.SetOutput(os.Stdout)
+	}
+
+	if err = LoadAirports(*airportFile); err != nil {
+		log.Fatalln("Error loading airports file:", err)
 	}
 
 	if *v {

@@ -16,6 +16,7 @@ import (
 	"github.com/davidjpeacock/conversions"
 	"github.com/davidjpeacock/shelbot/irc"
 
+	"github.com/alsm/forecastio"
 	geoip2 "github.com/oschwald/geoip2-golang"
 )
 
@@ -33,6 +34,7 @@ func init() {
 	commands["bottomten"] = ten
 	commands["geoip"] = geoip
 	commands["wiki"] = wiki
+	commands["weather"] = weather
 }
 
 func help(m *irc.PrivMsg) {
@@ -266,8 +268,32 @@ func wiki(m *irc.PrivMsg) {
 		return
 	}
 	for _, entry := range wikiLookup.Query.Pages {
-		conn.PrivMsgs(m.ReplyChannel, strings.Split(entry.Extract, "\n"))
+		conn.PrivMsg(m.ReplyChannel, strings.Split(entry.Extract, "\n")[0])
 		conn.PrivMsg(m.ReplyChannel, entry.Fullurl)
 		log.Println("Wikipedia extract provided:", entry.Fullurl)
 	}
+}
+
+func weather(m *irc.PrivMsg) {
+	lineElements := strings.Fields(m.Text)
+	if apiKey == "" {
+		// no api key, no weather
+		return
+	}
+
+	a := LookupAirport(lineElements[1])
+	if a == nil {
+		conn.PrivMsg(m.ReplyChannel, fmt.Sprintf("Sorry %s, I couldn't find an airport with that code", m.Nick))
+		return
+	}
+
+	c := forecastio.NewConnection(apiKey)
+	c.SetUnits("si")
+	f, err := c.Forecast(a.Latitude, a.Longitude, nil, false)
+	if err != nil || f == nil {
+		conn.PrivMsg(m.ReplyChannel, fmt.Sprintf("Sorry %s, there was an error looking up the weather for %s", m.Nick, a.Name))
+		return
+	}
+
+	conn.PrivMsg(m.ReplyChannel, fmt.Sprintf("The weather at %s is %s and %.1fC", a.Name, f.Currently.Summary, f.Currently.Temperature))
 }

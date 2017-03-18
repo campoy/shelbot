@@ -75,25 +75,18 @@ func (c *Conn) Part(channel string, partMessage string) {
 }
 
 func (c *Conn) PrivMsg(target string, text string) {
-	c.send(fmt.Sprintf("PRIVMSG %s :%s", target, text))
-}
-
-func (c *Conn) PrivMsgs(target string, texts []string) {
-	for _, subText := range texts {
-		response := fmt.Sprintf("PRIVMSG %s :%s", target, subText)
-		for len(subText) > 0 {
-			if len(response) > 400 {
-				lastSpace := strings.LastIndex(response[:400], " ")
-				subText = response[lastSpace+1:]
-				response = response[:lastSpace]
-				c.send(response)
-			} else {
-				c.send(response)
-				subText = ""
-				continue
-			}
-			response = fmt.Sprintf("PRIVMSG %s :%s", target, subText)
+	response := fmt.Sprintf("PRIVMSG %s :%s", target, text)
+	for len(text) > 0 {
+		if len(response) > 400 {
+			lastSpace := strings.LastIndex(response[:400], " ")
+			text = response[lastSpace+1:]
+			response = response[:lastSpace]
+			c.send(response)
+		} else {
+			c.send(response)
+			return
 		}
+		response = fmt.Sprintf("PRIVMSG %s :%s", target, text)
 	}
 }
 
@@ -101,7 +94,7 @@ func (c *Conn) Quit(quitMessage string) {
 	if quitMessage != "" {
 		quitMessage = fmt.Sprintf(":%s", quitMessage)
 	}
-	c.send(fmt.Sprintf("QUIT :%s", quitMessage))
+	c.send(fmt.Sprintf("QUIT %s", quitMessage))
 
 	close(c.close)
 	c.conn.Close()

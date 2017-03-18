@@ -254,7 +254,7 @@ func wiki(m *irc.PrivMsg) {
 
 	lineElements := strings.Fields(m.Text)
 
-	resp, err := http.Get("https://en.wikipedia.org/w/api.php?format=json&action=query&prop=extracts|info&redirects&exintro=&inprop=url&explaintext=&titles=" + html.EscapeString(strings.Join(lineElements[1:], " ")))
+	resp, err := http.Get("https://en.wikipedia.org/w/api.php?format=json&action=query&prop=extracts|info&redirects&exintro=&inprop=url&explaintext=&titles=" + html.EscapeString(strings.Join(lineElements[1:], "%20")))
 	if err != nil || resp.StatusCode != 200 {
 		conn.PrivMsg(m.ReplyChannel, fmt.Sprintf("Sorry %s, there was an error looking up a wiki article on %s", m.Nick, strings.Join(lineElements[1:], " ")))
 		return

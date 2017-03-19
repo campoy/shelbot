@@ -277,7 +277,8 @@ func wiki(m *irc.PrivMsg) {
 func weather(m *irc.PrivMsg) {
 	lineElements := strings.Fields(m.Text)
 	if apiKey == "" {
-		// no api key, no weather
+		// Do not add key; it goes in main.go with other flag defaults
+		// No api key, no weather - forecastio.io for key
 		return
 	}
 
@@ -292,8 +293,11 @@ func weather(m *irc.PrivMsg) {
 	f, err := c.Forecast(a.Latitude, a.Longitude, nil, false)
 	if err != nil || f == nil {
 		conn.PrivMsg(m.ReplyChannel, fmt.Sprintf("Sorry %s, there was an error looking up the weather for %s", m.Nick, a.Name))
+		log.Println(err)
 		return
 	}
 
-	conn.PrivMsg(m.ReplyChannel, fmt.Sprintf("The weather at %s is %s and %.1fC", a.Name, f.Currently.Summary, f.Currently.Temperature))
+	response := fmt.Sprintf("The weather at %s is %s and %.1fC", a.Name, f.Currently.Summary, f.Currently.Temperature)
+	conn.PrivMsg(m.ReplyChannel, response)
+	log.Println(response)
 }

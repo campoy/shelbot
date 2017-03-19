@@ -48,7 +48,7 @@ func main() {
 	karmaFile := flag.String("karmaFile", filepath.Join(homeDir, ".shelbot.json"), "karma db file")
 	debug := flag.Bool("debug", false, "Enable debug (print log to screen)")
 	v := flag.Bool("v", false, "Prints Shelbot version")
-	airportFile := flag.String("airportFile", "airports.csv", "airport data csv file")
+	airportFile := flag.String("airportFile", filepath.Join(homeDir, "airports.csv"), "airport data csv file")
 	flag.StringVar(&apiKey, "forecastioKey", "", "Forcast.io API key")
 	flag.Parse()
 

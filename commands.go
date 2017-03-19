@@ -17,10 +17,12 @@ import (
 	"github.com/davidjpeacock/shelbot/irc"
 
 	"github.com/alsm/forecastio"
+	spellcheck "github.com/liamzdenek/go-spellcheck"
 	geoip2 "github.com/oschwald/geoip2-golang"
 )
 
 var commands = make(map[string]func(*irc.PrivMsg))
+var dict *spellcheck.Dict
 
 func init() {
 	commands["help"] = help
@@ -35,6 +37,7 @@ func init() {
 	commands["geoip"] = geoip
 	commands["wiki"] = wiki
 	commands["weather"] = weather
+	commands["spell"] = spellchecks
 }
 
 func help(m *irc.PrivMsg) {
@@ -301,4 +304,24 @@ func weather(m *irc.PrivMsg) {
 	response := fmt.Sprintf("The weather at %s is %s and %.1fC", a.Name, f.Currently.Summary, f.Currently.Temperature)
 	conn.PrivMsg(m.ReplyChannel, response)
 	log.Println(response)
+}
+
+func spellchecks(m *irc.PrivMsg) {
+	lineElements := strings.Fields(m.Text)
+	if len(lineElements) < 2 {
+		conn.PrivMsg(m.ReplyChannel, fmt.Sprintf("Sorry %s, you didn't give me any words to check", m.Nick))
+	}
+	for _, w := range lineElements[1:] {
+		correct := model.SpellCheck(w)
+		if correct != w && correct != "" {
+			response := fmt.Sprintf("%s: I think you meant %s instead of %s", m.Nick, correct, w)
+			conn.PrivMsg(m.ReplyChannel, response)
+			log.Println(response)
+		}
+		if correct == "" {
+			response := fmt.Sprintf("%s: Sorry, I couldn't find a correction for %s", m.Nick, w)
+			conn.PrivMsg(m.ReplyChannel, response)
+			log.Println(response)
+		}
+	}
 }

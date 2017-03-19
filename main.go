@@ -17,7 +17,7 @@ import (
 	"github.com/sajari/fuzzy"
 )
 
-const Version = "2.4.1"
+const Version = "2.5.0"
 
 var (
 	homeDir string

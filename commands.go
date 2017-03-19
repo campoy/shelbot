@@ -276,7 +276,8 @@ func wiki(m *irc.PrivMsg) {
 
 func weather(m *irc.PrivMsg) {
 	lineElements := strings.Fields(m.Text)
-	if apiKey == "" {
+	if apiKey == "" || len(lineElements) < 2 {
+		// need an airport to search for
 		// Do not add key; it goes in main.go with other flag defaults
 		// No api key, no weather - forecastio.io for key
 		return

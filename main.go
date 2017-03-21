@@ -17,7 +17,7 @@ import (
 	"github.com/sajari/fuzzy"
 )
 
-const Version = "2.5.0"
+const Version = "2.5.1"
 
 var (
 	homeDir string
@@ -77,6 +77,7 @@ func main() {
 	if err != nil {
 		log.Fatalln("Error reading dictionary file:", err)
 	}
+	log.Println("Loading dictionary data, this may take some time.")
 	model.Train(strings.Fields(string(data)))
 
 	if *v {

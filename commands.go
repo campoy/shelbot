@@ -17,13 +17,12 @@ import (
 	"github.com/davidjpeacock/shelbot/irc"
 
 	"github.com/alsm/forecastio"
-	// spellcheck "github.com/liamzdenek/go-spellcheck"
+	spellcheck "github.com/liamzdenek/go-spellcheck"
 	geoip2 "github.com/oschwald/geoip2-golang"
 )
 
 var commands = make(map[string]func(*irc.PrivMsg))
-
-// var dict *spellcheck.Dict
+var dict *spellcheck.Dict
 
 func init() {
 	commands["help"] = help
@@ -38,7 +37,7 @@ func init() {
 	commands["geoip"] = geoip
 	commands["wiki"] = wiki
 	commands["weather"] = weather
-	// commands["spell"] = spellchecks
+	commands["spell"] = spellchecks
 }
 
 func help(m *irc.PrivMsg) {
@@ -307,7 +306,6 @@ func weather(m *irc.PrivMsg) {
 	log.Println(response)
 }
 
-/*
 func spellchecks(m *irc.PrivMsg) {
 	lineElements := strings.Fields(m.Text)
 	if len(lineElements) < 2 {
@@ -327,4 +325,3 @@ func spellchecks(m *irc.PrivMsg) {
 		}
 	}
 }
-*/

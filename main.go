@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/signal"
@@ -14,10 +13,9 @@ import (
 	"time"
 
 	"github.com/davidjpeacock/shelbot/irc"
-	"github.com/sajari/fuzzy"
 )
 
-const Version = "2.5.2"
+const Version = "2.5.3"
 
 var (
 	homeDir string
@@ -26,7 +24,6 @@ var (
 	k       *karma
 	apiKey  string
 	limits  = make(map[string]time.Time)
-	model   *fuzzy.Model
 )
 
 func init() {
@@ -52,7 +49,6 @@ func main() {
 	debug := flag.Bool("debug", false, "Enable debug (print log to screen)")
 	v := flag.Bool("v", false, "Prints Shelbot version")
 	airportFile := flag.String("airportFile", filepath.Join(homeDir, "airports.csv"), "airport data csv file")
-	dictFile := flag.String("dict", filepath.Join(homeDir, "words.txt"), "dictionary file for spellcheck")
 	flag.StringVar(&apiKey, "forecastioKey", "", "Forcast.io API key")
 	flag.Parse()
 
@@ -70,18 +66,6 @@ func main() {
 	if err = LoadAirports(*airportFile); err != nil {
 		log.Fatalln("Error loading airports file:", err)
 	}
-
-	go func() {
-		model = fuzzy.NewModel()
-		model.SetThreshold(1)
-		data, err := ioutil.ReadFile(*dictFile)
-		if err != nil {
-			log.Fatalln("Error reading dictionary file:", err)
-		}
-		log.Println("Loading dictionary data, this may take some time.")
-		model.Train(strings.Fields(string(data)))
-		conn.PrivMsg(bot.Channel, fmt.Sprintf("Word dictionary data loaded, and spell command available"))
-	}()
 
 	if *v {
 		fmt.Println("Shelbot version " + Version)

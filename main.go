@@ -43,7 +43,6 @@ type Pair struct {
 func main() {
 	var err error
 	var logFile *os.File
-	var karmaFunc func(string) int
 
 	confFile := flag.String("config", filepath.Join(homeDir, ".shelbot.conf"), "config file to be used with shelbot")
 	karmaFile := flag.String("karmaFile", filepath.Join(homeDir, ".shelbot.json"), "karma db file")
@@ -112,8 +111,14 @@ func main() {
 	client.Join(bot.Channel, "")
 	client.PrivMsg(bot.Channel, fmt.Sprintf("%s version %s reporting for duty", bot.Nick, Version))
 
-	go client.Listen()
+	go handleMessages(client.PrivMessages())
 
+	if err := client.Listen(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func handleMessages(msgs <-chan *irc.PrivMsg) {
 	for msg := range client.PrivMessages() {
 		lineElements := strings.Fields(msg.Text)
 
@@ -122,7 +127,6 @@ func main() {
 				msg.Text = strings.Join(lineElements[1:], " ")
 				commandFunc(msg)
 			}
-
 			continue
 		}
 
@@ -132,6 +136,7 @@ func main() {
 		}
 
 		var handle string
+		var karmaFunc func(string) int
 		switch {
 		case strings.HasSuffix(msg.Text, "++"):
 			handle = strings.TrimSuffix(lineElements[len(lineElements)-1], "++")
@@ -148,13 +153,12 @@ func main() {
 			client.PrivMsg(msg.ReplyChannel, response)
 			log.Println(response)
 
-			if err = k.save(); err != nil {
+			if err := k.save(); err != nil {
 				log.Fatalf("Error saving karma db: %s", err)
 			}
 			limits[msg.User] = time.Now()
 		} else if !lastK.Add(60 * time.Second).Before(time.Now()) {
 			log.Println(msg.Nick, "has already sent a karma message in the last 60 seconds")
 		}
-
 	}
 }

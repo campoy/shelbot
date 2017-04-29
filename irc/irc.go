@@ -108,6 +108,8 @@ func (c *Client) Listen() error {
 	for {
 		select {
 		case <-c.close:
+			close(c.privMessages)
+			close(c.messages)
 			Debug.Println("Listen exiting")
 			return nil
 		default:

@@ -43,7 +43,6 @@ type Pair struct {
 
 func main() {
 	var err error
-	var logFile *os.File
 
 	confFile := flag.String("config", filepath.Join(homeDir, ".shelbot.conf"), "config file to be used with shelbot")
 	flag.StringVar(&karmaFile, "karmaFile", filepath.Join(homeDir, ".shelbot.json"), "karma db file")
@@ -54,13 +53,13 @@ func main() {
 	flag.Parse()
 
 	if !*debug {
-		logFile, err = os.OpenFile(filepath.Join(homeDir, ".shelbot.log"), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+		f, err := os.OpenFile(filepath.Join(homeDir, ".shelbot.log"), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 		if err != nil {
 			log.Fatal(err)
 		}
-		log.SetOutput(logFile)
-		irc.Debug.SetOutput(logFile)
-		defer logFile.Close()
+		log.SetOutput(f)
+		irc.Debug.SetOutput(f)
+		defer f.Close()
 	} else {
 		irc.Debug.SetOutput(os.Stdout)
 	}

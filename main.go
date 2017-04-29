@@ -114,7 +114,7 @@ func main() {
 
 	go client.Listen()
 
-	for msg := range client.PrivMessages {
+	for msg := range client.PrivMessages() {
 		lineElements := strings.Fields(msg.Text)
 
 		if lineElements[0] == bot.Nick {

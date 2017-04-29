@@ -19,12 +19,13 @@ import (
 const Version = "2.5.3"
 
 var (
-	homeDir string
-	bot     *config
-	client  *irc.Client
-	karma   *karmaMap
-	apiKey  string
-	limits  = make(map[string]time.Time)
+	homeDir   string
+	bot       *config
+	client    *irc.Client
+	karma     karmaMap
+	karmaFile string
+	apiKey    string
+	limits    = make(map[string]time.Time)
 )
 
 func init() {
@@ -45,7 +46,7 @@ func main() {
 	var logFile *os.File
 
 	confFile := flag.String("config", filepath.Join(homeDir, ".shelbot.conf"), "config file to be used with shelbot")
-	karmaFile := flag.String("karmaFile", filepath.Join(homeDir, ".shelbot.json"), "karma db file")
+	flag.StringVar(&karmaFile, "karmaFile", filepath.Join(homeDir, ".shelbot.json"), "karma db file")
 	debug := flag.Bool("debug", false, "Enable debug (print log to screen)")
 	v := flag.Bool("v", false, "Prints Shelbot version")
 	airportFile := flag.String("airportFile", filepath.Join(homeDir, "airports.csv"), "airport data csv file")
@@ -77,11 +78,11 @@ func main() {
 		log.Fatalf("Error reading config file: %s", err)
 	}
 
-	if karma, err = readKarma(*karmaFile); err != nil {
+	if karma, err = readKarma(karmaFile); err != nil {
 		log.Fatalf("Error loading karma DB: %s", err)
 	}
 	defer func() {
-		if err := karma.save(); err != nil {
+		if err := writeKarma(karmaFile, karma); err != nil {
 			log.Printf("could not save karma: %v", err)
 		}
 	}()
@@ -154,7 +155,7 @@ func handleMessages(msgs <-chan *irc.PrivMsg) {
 			client.PrivMsg(msg.ReplyChannel, response)
 			log.Println(response)
 
-			if err := karma.save(); err != nil {
+			if err := writeKarma(karmaFile, karma); err != nil {
 				log.Fatalf("Error saving karma db: %s", err)
 			}
 			limits[msg.User] = time.Now()

@@ -6,46 +6,43 @@ import (
 	"io/ioutil"
 )
 
-type karmaMap struct {
-	m    map[string]int
-	path string
+type karmaMap map[string]int
+
+func (k karmaMap) increment(item string) int {
+	k[item]++
+	return k[item]
 }
 
-func (k *karmaMap) increment(item string) int {
-	k.m[item]++
-	return k.m[item]
+func (k karmaMap) decrement(item string) int {
+	k[item]--
+	return k[item]
 }
 
-func (k *karmaMap) decrement(item string) int {
-	k.m[item]--
-	return k.m[item]
+func (k karmaMap) query(item string) int {
+	return k[item]
 }
 
-func (k *karmaMap) query(item string) int {
-	return k.m[item]
-}
-
-func readKarma(path string) (*karmaMap, error) {
+func readKarma(path string) (karmaMap, error) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("could not read %s: %v", path, err)
 	}
 
-	var m map[string]int
-	if err := json.Unmarshal(data, &m); err != nil {
+	var k karmaMap
+	if err := json.Unmarshal(data, &k); err != nil {
 		return nil, fmt.Errorf("could not decode karma from %s: %v", path, err)
 	}
-	return &karmaMap{m: m, path: path}, nil
+	return k, nil
 }
 
-func (k karmaMap) save() error {
+func writeKarma(path string, k karmaMap) error {
 	data, err := json.Marshal(k)
 	if err != nil {
 		return fmt.Errorf("could not encode karma: %v", err)
 	}
 
-	if err := ioutil.WriteFile(k.path, data, 0666); err != nil {
-		return fmt.Errorf("could not write to %s: %v", k.path, err)
+	if err := ioutil.WriteFile(path, data, 0666); err != nil {
+		return fmt.Errorf("could not write to %s: %v", path, err)
 	}
 	return nil
 }

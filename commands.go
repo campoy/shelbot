@@ -213,7 +213,7 @@ func query(m *irc.PrivMsg) {
 func ten(m *irc.PrivMsg) {
 	lineElements := strings.Fields(m.Text)
 	var p []Pair
-	for k, v := range karma.m {
+	for k, v := range karma {
 		p = append(p, Pair{k, v})
 	}
 

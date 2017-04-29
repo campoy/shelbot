@@ -13,7 +13,7 @@ type Airport struct {
 	Country   string  `csv:"Country"`
 	IATA      string  `csv:"IATA"`
 	ICAO      string  `csv:"ICAO"`
-	Longitude float64 `csv:"Longitude`
+	Longitude float64 `csv:"Longitude"`
 	Latitude  float64 `csv:"Latitude"`
 	Altitude  int     `csv:"Altitude"`
 }

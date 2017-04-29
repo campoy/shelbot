@@ -20,18 +20,14 @@ type Conn struct {
 	wg           sync.WaitGroup
 	conn         net.Conn
 	server       string
-	nick         string
-	realName     string
 	close        chan struct{}
 	Messages     chan *Message
 	PrivMessages chan *PrivMsg
 }
 
-func New(server string, port uint16, nick string, realName string) *Conn {
+func New(server string, port uint16) *Conn {
 	c := &Conn{
 		server:       fmt.Sprintf("%s:%d", server, port),
-		nick:         nick,
-		realName:     realName,
 		close:        make(chan struct{}),
 		Messages:     make(chan *Message),
 		PrivMessages: make(chan *PrivMsg),
@@ -45,7 +41,7 @@ func (c *Conn) send(line string) {
 	time.Sleep(1000 * time.Millisecond)
 }
 
-func (c *Conn) Connect() error {
+func (c *Conn) Connect(nick, realName string) error {
 	var err error
 
 	c.conn, err = net.Dial("tcp", c.server)
@@ -54,8 +50,8 @@ func (c *Conn) Connect() error {
 	}
 	Debug.Println("Connected to IRC server", c.server, c.conn.RemoteAddr())
 
-	c.send("USER " + c.nick + " 8 * :" + c.nick)
-	c.send("NICK " + c.nick)
+	c.send("USER " + nick + " 8 * :" + nick)
+	c.send("NICK " + nick)
 	return nil
 }
 

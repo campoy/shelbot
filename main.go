@@ -85,10 +85,10 @@ func main() {
 	}
 
 	go handleSigterm()
-	go handleMessages(client.PrivMessages())
+	go handleMessages(client.PrivateMessages())
 
 	client.Join(bot.Channel, "")
-	client.PrivMsg(bot.Channel, fmt.Sprintf("%s version %s reporting for duty", bot.Nick, Version))
+	client.Send(bot.Channel, fmt.Sprintf("%s version %s reporting for duty", bot.Nick, Version))
 
 	if err := client.Listen(); err != nil {
 		log.Fatal(err)
@@ -105,8 +105,8 @@ func handleSigterm() {
 	}
 }
 
-func handleMessages(msgs <-chan *irc.PrivMsg) {
-	for msg := range client.PrivMessages() {
+func handleMessages(msgs <-chan *irc.PrivateMessage) {
+	for msg := range client.PrivateMessages() {
 		lineElements := strings.Fields(msg.Text)
 
 		if lineElements[0] == bot.Nick {
@@ -137,7 +137,7 @@ func handleMessages(msgs <-chan *irc.PrivMsg) {
 		if lastK, ok := limits[msg.User]; (ok && lastK.Add(60*time.Second).Before(time.Now())) || !ok {
 			karmaTotal := karmaFunc(handle)
 			response := fmt.Sprintf("Karma for %s now %d", handle, karmaTotal)
-			client.PrivMsg(msg.ReplyChannel, response)
+			client.Send(msg.ReplyChannel, response)
 			log.Println(response)
 
 			if err := writeKarma(karmaFile, karma); err != nil {

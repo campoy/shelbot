@@ -46,26 +46,13 @@ func main() {
 
 	confFile := flag.String("config", filepath.Join(homeDir, ".shelbot.conf"), "config file to be used with shelbot")
 	flag.StringVar(&karmaFile, "karmaFile", filepath.Join(homeDir, ".shelbot.json"), "karma db file")
-	debug := flag.Bool("debug", false, "Enable debug (print log to screen)")
 	v := flag.Bool("v", false, "Prints Shelbot version")
 	airportFile := flag.String("airportFile", filepath.Join(homeDir, "airports.csv"), "airport data csv file")
 	flag.StringVar(&apiKey, "forecastioKey", "", "Forcast.io API key")
 	flag.Parse()
 
-	if !*debug {
-		f, err := os.OpenFile(filepath.Join(homeDir, ".shelbot.log"), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
-		if err != nil {
-			log.Fatal(err)
-		}
-		log.SetOutput(f)
-		irc.Debug.SetOutput(f)
-		defer f.Close()
-	} else {
-		irc.Debug.SetOutput(os.Stdout)
-	}
-
 	if err = LoadAirports(*airportFile); err != nil {
-		log.Fatalln("Error loading airports file:", err)
+		log.Fatalf("could not load airports: %v", err)
 	}
 
 	if *v {
@@ -74,11 +61,11 @@ func main() {
 	}
 
 	if bot, err = loadConfig(*confFile); err != nil {
-		log.Fatalf("Error reading config file: %s", err)
+		log.Fatalf("could not read config file: %s", err)
 	}
 
 	if karma, err = readKarma(karmaFile); err != nil {
-		log.Fatalf("Error loading karma DB: %s", err)
+		log.Fatalf("could not read karma from %s: %v", karmaFile, err)
 	}
 	defer func() {
 		if err := writeKarma(karmaFile, karma); err != nil {
@@ -98,11 +85,10 @@ func main() {
 	}
 
 	go handleSigterm()
+	go handleMessages(client.PrivMessages())
 
 	client.Join(bot.Channel, "")
 	client.PrivMsg(bot.Channel, fmt.Sprintf("%s version %s reporting for duty", bot.Nick, Version))
-
-	go handleMessages(client.PrivMessages())
 
 	if err := client.Listen(); err != nil {
 		log.Fatal(err)

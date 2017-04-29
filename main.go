@@ -22,7 +22,7 @@ var (
 	homeDir string
 	bot     *config
 	client  *irc.Client
-	k       *karma
+	karma   *karmaMap
 	apiKey  string
 	limits  = make(map[string]time.Time)
 )
@@ -59,6 +59,7 @@ func main() {
 		}
 		log.SetOutput(logFile)
 		irc.Debug.SetOutput(logFile)
+		defer logFile.Close()
 	} else {
 		irc.Debug.SetOutput(os.Stdout)
 	}
@@ -76,9 +77,17 @@ func main() {
 		log.Fatalf("Error reading config file: %s", err)
 	}
 
-	if k, err = readKarmaFileJSON(*karmaFile); err != nil {
+	if karma, err = readKarmaMapFileJSON(*karmaFile); err != nil {
 		log.Fatalf("Error loading karma DB: %s", err)
 	}
+	defer func() {
+		if err := karma.save(); err != nil {
+			log.Printf("could not save karma: %v", err)
+		}
+		if err := karma.close(); err != nil {
+			log.Printf("could not close karma file: %v", err)
+		}
+	}()
 
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", bot.Server, bot.Port))
 	if err != nil {
@@ -91,22 +100,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	go func() {
-		c := make(chan os.Signal, 1)
-		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-		<-c
-		log.Println("Received SIGTERM, exiting")
-		client.Quit("Bazinga!")
-		if err = k.save(); err == nil {
-			if f, ok := k.dbFile.(*os.File); ok {
-				f.Close()
-			}
-		}
-		if !*debug {
-			logFile.Close()
-		}
-		os.Exit(0)
-	}()
+	go handleSigterm()
 
 	client.Join(bot.Channel, "")
 	client.PrivMsg(bot.Channel, fmt.Sprintf("%s version %s reporting for duty", bot.Nick, Version))
@@ -115,6 +109,16 @@ func main() {
 
 	if err := client.Listen(); err != nil {
 		log.Fatal(err)
+	}
+}
+
+func handleSigterm() {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	<-c
+	log.Println("Received SIGTERM, exiting")
+	if err := client.Quit("Bazinga!"); err != nil {
+		log.Fatalf("could not quit gracefully: %v", err)
 	}
 }
 
@@ -140,10 +144,10 @@ func handleMessages(msgs <-chan *irc.PrivMsg) {
 		switch {
 		case strings.HasSuffix(msg.Text, "++"):
 			handle = strings.TrimSuffix(lineElements[len(lineElements)-1], "++")
-			karmaFunc = k.increment
+			karmaFunc = karma.increment
 		case strings.HasSuffix(msg.Text, "--"):
 			handle = strings.TrimSuffix(lineElements[len(lineElements)-1], "--")
-			karmaFunc = k.decrement
+			karmaFunc = karma.decrement
 		default:
 			continue
 		}
@@ -153,7 +157,7 @@ func handleMessages(msgs <-chan *irc.PrivMsg) {
 			client.PrivMsg(msg.ReplyChannel, response)
 			log.Println(response)
 
-			if err := k.save(); err != nil {
+			if err := karma.save(); err != nil {
 				log.Fatalf("Error saving karma db: %s", err)
 			}
 			limits[msg.User] = time.Now()

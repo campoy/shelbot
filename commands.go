@@ -202,7 +202,7 @@ func query(m *irc.PrivMsg) {
 	lineElements := strings.Fields(m.Text)
 	if len(lineElements) > 1 {
 		for _, q := range lineElements[1:] {
-			karmaValue := k.query(q)
+			karmaValue := karma.query(q)
 			response := fmt.Sprintf("Karma for %s is %d.", q, karmaValue)
 			client.PrivMsg(m.ReplyChannel, response)
 			log.Println(response)
@@ -213,7 +213,7 @@ func query(m *irc.PrivMsg) {
 func ten(m *irc.PrivMsg) {
 	lineElements := strings.Fields(m.Text)
 	var p []Pair
-	for k, v := range k.db {
+	for k, v := range karma.db {
 		p = append(p, Pair{k, v})
 	}
 

@@ -7,27 +7,27 @@ import (
 	"os"
 )
 
-type karma struct {
+type karmaMap struct {
 	db     map[string]int
 	dbFile io.ReadWriteSeeker
 }
 
-func (k *karma) increment(item string) int {
+func (k *karmaMap) increment(item string) int {
 	k.db[item]++
 	return k.db[item]
 }
 
-func (k *karma) decrement(item string) int {
+func (k *karmaMap) decrement(item string) int {
 	k.db[item]--
 	return k.db[item]
 }
 
-func (k *karma) query(item string) int {
+func (k *karmaMap) query(item string) int {
 	return k.db[item]
 }
 
-func newKarma(d io.ReadWriteSeeker) *karma {
-	k := &karma{
+func newKarmaMap(d io.ReadWriteSeeker) *karmaMap {
+	k := &karmaMap{
 		db:     make(map[string]int),
 		dbFile: d,
 	}
@@ -35,7 +35,7 @@ func newKarma(d io.ReadWriteSeeker) *karma {
 	return k
 }
 
-func (k *karma) read() error {
+func (k *karmaMap) read() error {
 	if _, err := k.dbFile.Seek(io.SeekStart, 0); err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ func (k *karma) read() error {
 	return nil
 }
 
-func readKarmaFileJSON(fileLoc string) (*karma, error) {
+func readKarmaMapFileJSON(fileLoc string) (*karmaMap, error) {
 	var err error
 	var dbFile *os.File
 	if _, err := os.Stat(fileLoc); err != nil {
@@ -59,13 +59,13 @@ func readKarmaFileJSON(fileLoc string) (*karma, error) {
 		if dbFile, err = os.OpenFile(fileLoc, os.O_RDWR|os.O_CREATE, 0644); err != nil {
 			return nil, err
 		}
-		return newKarma(dbFile), nil
+		return newKarmaMap(dbFile), nil
 	}
 	log.Println("Loading karma JSON from disk and populating karmaDB map.")
 	if dbFile, err = os.OpenFile(fileLoc, os.O_RDWR|os.O_CREATE, 0644); err != nil {
 		return nil, err
 	}
-	k := newKarma(dbFile)
+	k := newKarmaMap(dbFile)
 	if err = k.read(); err != nil {
 		return nil, err
 	}
@@ -73,7 +73,7 @@ func readKarmaFileJSON(fileLoc string) (*karma, error) {
 	return k, nil
 }
 
-func (k *karma) save() error {
+func (k *karmaMap) save() error {
 	marshaledKarmaData, err := json.MarshalIndent(k.db, "", "    ")
 	if err != nil {
 		return err
@@ -89,4 +89,12 @@ func (k *karma) save() error {
 	}
 
 	return nil
+}
+
+func (k *karmaMap) close() error {
+	f, ok := k.dbFile.(io.Closer)
+	if !ok {
+		return nil
+	}
+	return f.Close()
 }

@@ -77,15 +77,12 @@ func main() {
 		log.Fatalf("Error reading config file: %s", err)
 	}
 
-	if karma, err = readKarmaMapFileJSON(*karmaFile); err != nil {
+	if karma, err = readKarma(*karmaFile); err != nil {
 		log.Fatalf("Error loading karma DB: %s", err)
 	}
 	defer func() {
 		if err := karma.save(); err != nil {
 			log.Printf("could not save karma: %v", err)
-		}
-		if err := karma.close(); err != nil {
-			log.Printf("could not close karma file: %v", err)
 		}
 	}()
 

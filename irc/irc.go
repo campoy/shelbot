@@ -3,9 +3,9 @@ package irc
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
-	"net"
 	"net/textproto"
 	"strings"
 	"sync"
@@ -16,60 +16,55 @@ var (
 	Debug = log.New(ioutil.Discard, "IRC: ", log.LstdFlags)
 )
 
-type Conn struct {
+type Client struct {
 	wg           sync.WaitGroup
-	conn         net.Conn
-	server       string
+	conn         io.ReadWriteCloser
 	close        chan struct{}
 	Messages     chan *Message
 	PrivMessages chan *PrivMsg
 }
 
-func New(server string, port uint16) *Conn {
-	return &Conn{
-		server:       fmt.Sprintf("%s:%d", server, port),
+func New(conn io.ReadWriteCloser) *Client {
+	return &Client{
+		conn:         conn,
 		close:        make(chan struct{}),
 		Messages:     make(chan *Message),
 		PrivMessages: make(chan *PrivMsg),
 	}
 }
 
-func (c *Conn) send(line string) error {
+func (c *Client) send(line string) error {
 	_, err := c.conn.Write([]byte(fmt.Sprintf("%s\r\n", line)))
 	time.Sleep(1000 * time.Millisecond)
 	return err
 }
 
-func (c *Conn) Connect(nick, realName string) error {
-	var err error
-
-	c.conn, err = net.Dial("tcp", c.server)
-	if err != nil {
-		return fmt.Errorf("Failed to connect to IRC server: %s", err)
+func (c *Client) Connect(nick, realName string) error {
+	if err := c.send("USER " + nick + " 8 * :" + nick); err != nil {
+		return fmt.Errorf("USER command: %v", err)
 	}
-	Debug.Println("Connected to IRC server", c.server, c.conn.RemoteAddr())
-
-	c.send("USER " + nick + " 8 * :" + nick)
-	c.send("NICK " + nick)
+	if err := c.send("NICK " + nick); err != nil {
+		return fmt.Errorf("NICK command: %v", err)
+	}
 	return nil
 }
 
-func (c *Conn) Join(channel string, key string) error {
+func (c *Client) Join(channel string, key string) error {
 	return c.send(fmt.Sprintf("JOIN %s %s", channel, key))
 }
 
-func (c *Conn) JoinExclusive(channel string, key string) error {
+func (c *Client) JoinExclusive(channel string, key string) error {
 	return c.send(fmt.Sprintf("JOIN %s %s 0", channel, key))
 }
 
-func (c *Conn) Part(channel string, partMessage string) error {
+func (c *Client) Part(channel string, partMessage string) error {
 	if partMessage != "" {
 		partMessage = fmt.Sprintf(":%s", partMessage)
 	}
 	return c.send(fmt.Sprintf("PART %s %s", channel, partMessage))
 }
 
-func (c *Conn) PrivMsg(target string, text string) error {
+func (c *Client) PrivMsg(target string, text string) error {
 	response := fmt.Sprintf("PRIVMSG %s :%s", target, text)
 	for len(text) > 0 {
 		if len(response) > 400 {
@@ -87,7 +82,7 @@ func (c *Conn) PrivMsg(target string, text string) error {
 	return nil
 }
 
-func (c *Conn) Quit(quitMessage string) error {
+func (c *Client) Quit(quitMessage string) error {
 	if quitMessage != "" {
 		quitMessage = fmt.Sprintf(":%s", quitMessage)
 	}
@@ -101,7 +96,7 @@ func (c *Conn) Quit(quitMessage string) error {
 	return nil
 }
 
-func (c *Conn) Listen() error {
+func (c *Client) Listen() error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 	reader := bufio.NewReader(c.conn)

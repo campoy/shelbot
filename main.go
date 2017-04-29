@@ -80,9 +80,9 @@ func main() {
 		log.Fatalf("Error loading karma DB: %s", err)
 	}
 
-	conn = irc.New(bot.Server, bot.Port, bot.Nick, bot.User)
+	conn = irc.New(bot.Server, bot.Port)
 
-	if err = conn.Connect(); err != nil {
+	if err = conn.Connect(bot.Nick, bot.User); err != nil {
 		log.Fatal(err)
 	}
 

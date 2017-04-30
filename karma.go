@@ -6,36 +6,35 @@ import (
 	"io/ioutil"
 )
 
-type karmaMap map[string]int
+type karma map[string]int
 
-func (k karmaMap) increment(item string) int {
+func (k karma) increment(item string) int {
 	k[item]++
 	return k[item]
 }
 
-func (k karmaMap) decrement(item string) int {
+func (k karma) decrement(item string) int {
 	k[item]--
 	return k[item]
 }
 
-func (k karmaMap) query(item string) int {
+func (k karma) query(item string) int {
 	return k[item]
 }
 
-func readKarma(path string) (karmaMap, error) {
+func (k *karma) load(path string) error {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("could not read %s: %v", path, err)
+		return fmt.Errorf("could not read %s: %v", path, err)
 	}
 
-	var k karmaMap
-	if err := json.Unmarshal(data, &k); err != nil {
-		return nil, fmt.Errorf("could not decode karma from %s: %v", path, err)
+	if err := json.Unmarshal(data, k); err != nil {
+		return fmt.Errorf("could not decode karma from %s: %v", path, err)
 	}
-	return k, nil
+	return nil
 }
 
-func writeKarma(path string, k karmaMap) error {
+func (k *karma) write(path string) error {
 	data, err := json.Marshal(k)
 	if err != nil {
 		return fmt.Errorf("could not encode karma: %v", err)

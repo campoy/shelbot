@@ -83,7 +83,7 @@ func (c *Client) Quit(msg string) error {
 		return err
 	}
 	c.once.Do(func() { close(c.done) })
-	return nil
+	return c.conn.Close()
 }
 
 func (c *Client) send(format string, args ...interface{}) error {
@@ -95,6 +95,21 @@ func (c *Client) send(format string, args ...interface{}) error {
 func (c *Client) Listen() error {
 	reader := textproto.NewReader(bufio.NewReader(c.conn))
 
+	lines := make(chan string)
+	go func() {
+		defer close(lines)
+		for {
+			l, err := reader.ReadLine()
+			if err == io.EOF {
+				return
+			} else if err != nil {
+				c.logger.Printf("could not read line: %v", err)
+				continue
+			}
+			lines <- l
+		}
+	}()
+
 	c.logger.Println("Ready to Listen")
 	for {
 		select {
@@ -103,10 +118,9 @@ func (c *Client) Listen() error {
 			close(c.messages)
 			c.logger.Println("Listen exiting")
 			return nil
-		default:
-			line, err := reader.ReadLine()
-			if err != nil {
-				return fmt.Errorf("could not read line: %v", err)
+		case line, ok := <-lines:
+			if !ok {
+				lines = nil
 			}
 			line = strings.TrimSpace(line)
 

@@ -7,8 +7,6 @@ import (
 	"net"
 	"os"
 	"os/signal"
-	"os/user"
-	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -18,107 +16,97 @@ import (
 
 const Version = "2.5.3"
 
-var (
-	homeDir   string
-	bot       *config
-	client    *irc.Client
-	karma     karmaMap
-	karmaFile string
-	apiKey    string
-	limits    = make(map[string]time.Time)
-)
+type bot struct {
+	*irc.Client
 
-func init() {
-	usr, err := user.Current()
-	if err != nil {
-		log.Fatal(err)
+	config   config
+	karma    karma
+	airports airports
+}
+
+func newBot(conf string) (*bot, error) {
+	var b bot
+	if err := b.config.load(conf); err != nil {
+		return nil, fmt.Errorf("could not read config file: %s", err)
 	}
-	homeDir = usr.HomeDir
-}
-
-type Pair struct {
-	Key   string
-	Value int
-}
-
-func main() {
-	var err error
-
-	confFile := flag.String("config", filepath.Join(homeDir, ".shelbot.conf"), "config file to be used with shelbot")
-	flag.StringVar(&karmaFile, "karmaFile", filepath.Join(homeDir, ".shelbot.json"), "karma db file")
-	v := flag.Bool("v", false, "Prints Shelbot version")
-	airportFile := flag.String("airportFile", filepath.Join(homeDir, "airports.csv"), "airport data csv file")
-	flag.StringVar(&apiKey, "forecastioKey", "", "Forcast.io API key")
-	flag.Parse()
-
-	if err = LoadAirports(*airportFile); err != nil {
+	if err := b.karma.load(b.config.KarmaFile); err != nil {
+		return nil, fmt.Errorf("could not read karma from %s: %v", b.config.KarmaFile, err)
+	}
+	if err := b.airports.Load(b.config.AirportFile); err != nil {
 		log.Fatalf("could not load airports: %v", err)
 	}
 
-	if *v {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", b.config.Server, b.config.Port))
+	if err != nil {
+		return nil, fmt.Errorf("could not connect to %s:%d: %v", b.config.Server, b.config.Port, err)
+	}
+	b.Client = irc.New(conn)
+	if err = b.Connect(b.config.Nick, b.config.User); err != nil {
+		return nil, fmt.Errorf("could not connect: %v", err)
+	}
+
+	return &b, nil
+}
+
+func main() {
+	var (
+		confFile = flag.String("config", ".shelconfig.conf", "config file to be used with shelbot")
+		version  = flag.Bool("v", false, "Prints Shelbot version")
+	)
+	flag.Parse()
+
+	if *version {
 		fmt.Println("Shelbot version " + Version)
 		return
 	}
 
-	if bot, err = loadConfig(*confFile); err != nil {
-		log.Fatalf("could not read config file: %s", err)
-	}
-
-	if karma, err = readKarma(karmaFile); err != nil {
-		log.Fatalf("could not read karma from %s: %v", karmaFile, err)
-	}
-	defer func() {
-		if err := writeKarma(karmaFile, karma); err != nil {
-			log.Printf("could not save karma: %v", err)
-		}
-	}()
-
-	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", bot.Server, bot.Port))
+	b, err := newBot(*confFile)
 	if err != nil {
-		log.Fatalf("could not connect to %s:%d: %v", bot.Server, bot.Port, err)
-	}
-	defer conn.Close()
-
-	client = irc.New(conn)
-	if err = client.Connect(bot.Nick, bot.User); err != nil {
 		log.Fatal(err)
 	}
 
-	go handleSigterm()
-	go handleMessages(client.PrivateMessages())
+	go b.handleSigterm()
+	go b.handleMessages()
 
-	client.Join(bot.Channel, "")
-	client.Send(bot.Channel, fmt.Sprintf("%s version %s reporting for duty", bot.Nick, Version))
+	b.Join(b.config.Channel, "")
+	b.Send(b.config.Channel, fmt.Sprintf("%s version %s reporting for duty", b.config.Nick, Version))
 
-	if err := client.Listen(); err != nil {
+	listenErr := b.Listen()
+
+	if err := b.karma.write(b.config.KarmaFile); err != nil {
+		log.Printf("could not save karma: %v", err)
+	}
+
+	if listenErr != nil {
 		log.Fatal(err)
 	}
 }
 
-func handleSigterm() {
+func (b *bot) handleSigterm() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c
 	log.Println("Received SIGTERM, exiting")
-	if err := client.Quit("Bazinga!"); err != nil {
+	if err := b.Quit("Bazinga!"); err != nil {
 		log.Fatalf("could not quit gracefully: %v", err)
 	}
 }
 
-func handleMessages(msgs <-chan *irc.PrivateMessage) {
-	for msg := range client.PrivateMessages() {
+func (b *bot) handleMessages() {
+	limits := make(map[string]time.Time)
+	for msg := range b.PrivateMessages() {
 		lineElements := strings.Fields(msg.Text)
 
-		if lineElements[0] == bot.Nick {
-			if commandFunc, ok := commands[lineElements[1]]; ok {
+		if lineElements[0] == b.config.Nick {
+			if f, ok := commands[lineElements[1]]; ok {
 				msg.Text = strings.Join(lineElements[1:], " ")
-				commandFunc(msg)
+				f(b, msg)
 			}
 			continue
 		}
 
-		if commandFunc, ok := commands[lineElements[0]]; ok && !strings.HasPrefix(msg.Channel, "#") {
-			commandFunc(msg)
+		if f, ok := commands[lineElements[0]]; ok && !strings.HasPrefix(msg.Channel, "#") {
+			f(b, msg)
 			continue
 		}
 
@@ -127,22 +115,18 @@ func handleMessages(msgs <-chan *irc.PrivateMessage) {
 		switch {
 		case strings.HasSuffix(msg.Text, "++"):
 			handle = strings.TrimSuffix(lineElements[len(lineElements)-1], "++")
-			karmaFunc = karma.increment
+			karmaFunc = b.karma.increment
 		case strings.HasSuffix(msg.Text, "--"):
 			handle = strings.TrimSuffix(lineElements[len(lineElements)-1], "--")
-			karmaFunc = karma.decrement
+			karmaFunc = b.karma.decrement
 		default:
 			continue
 		}
 		if lastK, ok := limits[msg.User]; (ok && lastK.Add(60*time.Second).Before(time.Now())) || !ok {
 			karmaTotal := karmaFunc(handle)
 			response := fmt.Sprintf("Karma for %s now %d", handle, karmaTotal)
-			client.Send(msg.ReplyChannel, response)
+			b.Send(msg.ReplyChannel, response)
 			log.Println(response)
-
-			if err := writeKarma(karmaFile, karma); err != nil {
-				log.Fatalf("Error saving karma db: %s", err)
-			}
 			limits[msg.User] = time.Now()
 		} else if !lastK.Add(60 * time.Second).Before(time.Now()) {
 			log.Println(msg.Nick, "has already sent a karma message in the last 60 seconds")

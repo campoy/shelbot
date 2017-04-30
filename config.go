@@ -7,37 +7,27 @@ import (
 )
 
 type config struct {
-	Server        string `json:"server"`
-	Port          uint16 `json:"port"`
-	Nick          string `json:"nick"`
-	User          string `json:"user"`
-	Channel       string `json:"channel"`
-	Pass          string `json:"pass"`
-	pread, pwrite chan string
+	Server      string
+	Port        uint16
+	Nick        string
+	User        string
+	Channel     string
+	Pass        string
+	KarmaFile   string
+	AirportFile string
+	ApiKey      string
 }
 
-func loadConfig(confFile string) (*config, error) {
-	data, err := ioutil.ReadFile(confFile)
+func (cfg *config) load(path string) error {
+	data, err := ioutil.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	var c config
-	if err = json.Unmarshal(data, &c); err != nil {
-		return nil, err
+	if err = json.Unmarshal(data, &cfg); err != nil {
+		return err
 	}
-
-	if err = c.validate(); err != nil {
-		return nil, err
+	if !strings.HasPrefix(cfg.Channel, "#") {
+		cfg.Channel = "#" + cfg.Channel
 	}
-
-	return &c, nil
-}
-
-func (c *config) validate() error {
-	if !strings.HasPrefix(c.Channel, "#") {
-		c.Channel = "#" + c.Channel
-	}
-
 	return nil
 }

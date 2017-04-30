@@ -7,7 +7,7 @@ import (
 	"github.com/gocarina/gocsv"
 )
 
-type Airport struct {
+type airport struct {
 	Name      string  `csv:"Airport Name"`
 	City      string  `csv:"City"`
 	Country   string  `csv:"Country"`
@@ -18,28 +18,23 @@ type Airport struct {
 	Altitude  int     `csv:"Altitude"`
 }
 
-var Airports []*Airport
+type airports []airport
 
-func LoadAirports(af string) error {
-	data, err := ioutil.ReadFile(af)
+func (as airports) Load(path string) error {
+	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return err
 	}
 
-	if err = gocsv.UnmarshalBytes(data, &Airports); err != nil {
-		return err
-	}
-
-	return nil
+	return gocsv.UnmarshalBytes(data, &as)
 }
 
-func LookupAirport(q string) *Airport {
-	for _, a := range Airports {
+func (as airports) Lookup(q string) *airport {
+	for _, a := range as {
 		q = strings.ToLower(q)
 		if q == strings.ToLower(a.IATA) || q == strings.ToLower(a.ICAO) {
-			return a
+			return &a
 		}
 	}
-
 	return nil
 }

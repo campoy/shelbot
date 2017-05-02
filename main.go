@@ -85,6 +85,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to connect to IRC server: %s", err)
 	}
+	defer netConn.Close()
+
 	log.Println("Connected to IRC server", fmt.Sprintf("%s:%d", bot.Server, bot.Port), netConn.RemoteAddr())
 
 	conn = irc.New(netConn)

@@ -3,9 +3,9 @@ package irc
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
-	"net"
 	"net/textproto"
 	"strings"
 	"sync"
@@ -18,13 +18,13 @@ var (
 
 type Conn struct {
 	wg           sync.WaitGroup
-	conn         net.Conn
+	conn         io.ReadWriter
 	close        chan struct{}
 	Messages     chan *Message
 	PrivMessages chan *PrivMsg
 }
 
-func New(conn net.Conn) *Conn {
+func New(conn io.ReadWriter) *Conn {
 	return &Conn{
 		conn:         conn,
 		close:        make(chan struct{}),
@@ -82,7 +82,6 @@ func (c *Conn) Quit(quitMessage string) {
 	c.send(fmt.Sprintf("QUIT %s", quitMessage))
 
 	close(c.close)
-	c.conn.Close()
 	c.wg.Wait()
 }
 

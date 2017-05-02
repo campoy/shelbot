@@ -121,15 +121,15 @@ func main() {
 		log.Fatalf("Could not send hello: %v", err)
 	}
 
-	go handleMessages(client.PrivMessages)
+	go handleMessages(client.PrivMessages())
 
 	if err := client.Listen(); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func handleMessages(msg chan *irc.PrivMsg) {
-	for msg := range client.PrivMessages {
+func handleMessages(msgs <-chan *irc.PrivMsg) {
+	for msg := range msgs {
 		lineElements := strings.Fields(msg.Text)
 
 		if lineElements[0] == bot.Nick {

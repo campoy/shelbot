@@ -20,16 +20,19 @@ type Client struct {
 	conn         io.ReadWriter
 	quit         chan struct{}
 	once         sync.Once
-	Messages     chan *Message
-	PrivMessages chan *PrivMsg
+	messages     chan *Message
+	privMessages chan *PrivMsg
 }
+
+func (c *Client) Messages() <-chan *Message     { return c.messages }
+func (c *Client) PrivMessages() <-chan *PrivMsg { return c.privMessages }
 
 func New(conn io.ReadWriter) *Client {
 	return &Client{
 		conn:         conn,
 		quit:         make(chan struct{}),
-		Messages:     make(chan *Message),
-		PrivMessages: make(chan *PrivMsg),
+		messages:     make(chan *Message),
+		privMessages: make(chan *PrivMsg),
 	}
 }
 
@@ -121,10 +124,10 @@ func (c *Client) Listen() error {
 			}
 			switch m.Command {
 			case "PRIVMSG":
-				c.PrivMessages <- privMsgFromMessage(m)
+				c.privMessages <- privMsgFromMessage(m)
 			default:
 				select {
-				case c.Messages <- m:
+				case c.messages <- m:
 				default:
 				}
 			}

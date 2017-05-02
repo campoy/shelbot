@@ -52,15 +52,15 @@ func main() {
 	flag.StringVar(&apiKey, "forecastioKey", "", "Forcast.io API key")
 	flag.Parse()
 
+	logger := log.New(os.Stdout, "IRC: ", log.LstdFlags)
 	if !*debug {
 		logFile, err = os.OpenFile(filepath.Join(homeDir, ".shelbot.log"), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 		if err != nil {
 			log.Fatal(err)
 		}
 		log.SetOutput(logFile)
-		irc.Debug.SetOutput(logFile)
-	} else {
-		irc.Debug.SetOutput(os.Stdout)
+		logger.SetOutput(logFile)
+		defer logFile.Close()
 	}
 
 	if err = LoadAirports(*airportFile); err != nil {
@@ -88,7 +88,9 @@ func main() {
 
 	log.Println("Connected to IRC server", fmt.Sprintf("%s:%d", bot.Server, bot.Port), netConn.RemoteAddr())
 
-	client = irc.New(netConn)
+	client = irc.New(netConn,
+		irc.WithPause(500*time.Millisecond),
+		irc.WithLogger(logger))
 
 	if err = client.Connect(bot.Nick, bot.User); err != nil {
 		log.Fatal(err)

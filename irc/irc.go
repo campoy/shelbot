@@ -12,34 +12,39 @@ import (
 	"time"
 )
 
-var (
-	Debug = log.New(ioutil.Discard, "IRC: ", log.LstdFlags)
-)
-
 type Client struct {
 	conn         io.ReadWriter
 	quit         chan struct{}
 	once         sync.Once
 	messages     chan *Message
 	privMessages chan *PrivMsg
+	logger       *log.Logger
+	pause        time.Duration
 }
 
 func (c *Client) Messages() <-chan *Message     { return c.messages }
 func (c *Client) PrivMessages() <-chan *PrivMsg { return c.privMessages }
 
-func New(conn io.ReadWriter) *Client {
-	return &Client{
+func New(conn io.ReadWriter, opts ...Option) *Client {
+	c := &Client{
 		conn:         conn,
 		quit:         make(chan struct{}),
 		messages:     make(chan *Message),
 		privMessages: make(chan *PrivMsg),
+		logger:       log.New(ioutil.Discard, "IRC: ", log.LstdFlags),
+		pause:        1 * time.Second,
 	}
+
+	return c
 }
 
-func (c *Client) send(format string, args ...interface{}) error {
-	_, err := c.conn.Write([]byte(fmt.Sprintf(format+"\r\n", args...)))
-	time.Sleep(1000 * time.Millisecond)
-	return err
+type Option func(*Client)
+
+func WithLogger(logger *log.Logger) Option {
+	return func(c *Client) { c.logger = logger }
+}
+func WithPause(pause time.Duration) Option {
+	return func(c *Client) { c.pause = pause }
 }
 
 func (c *Client) Connect(nick, realName string) error {
@@ -95,11 +100,11 @@ func (c *Client) Quit(quitMessage string) error {
 func (c *Client) Listen() error {
 	reader := bufio.NewReader(c.conn)
 	response := textproto.NewReader(reader)
-	Debug.Println("Ready to Listen")
+	c.logger.Println("Ready to Listen")
 	for {
 		select {
 		case <-c.quit:
-			Debug.Println("Listen exiting")
+			c.logger.Println("Listen exiting")
 			return nil
 		default:
 			line, err := response.ReadLine()
@@ -107,20 +112,20 @@ func (c *Client) Listen() error {
 				if strings.Contains(err.Error(), "use of closed network connection") {
 					return err
 				}
-				Debug.Println("Error calling ReadLine()")
+				c.logger.Println("Error calling ReadLine()")
 				return err
 			}
-			Debug.Println(line)
+			c.logger.Println(line)
 			lineElements := strings.Fields(line)
 			if lineElements[0] == "PING" {
 				c.send("PONG %s", lineElements[1])
-				Debug.Println("PONG " + lineElements[1])
+				c.logger.Println("PONG " + lineElements[1])
 				continue
 			}
 
 			m, err := NewMessage(line)
 			if err != nil {
-				Debug.Println("Error parsing raw message:", err)
+				c.logger.Println("Error parsing raw message:", err)
 			}
 			switch m.Command {
 			case "PRIVMSG":
@@ -133,4 +138,10 @@ func (c *Client) Listen() error {
 			}
 		}
 	}
+}
+
+func (c *Client) send(format string, args ...interface{}) error {
+	_, err := c.conn.Write([]byte(fmt.Sprintf(format+"\r\n", args...)))
+	time.Sleep(c.pause)
+	return err
 }

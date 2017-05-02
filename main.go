@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"os/user"
@@ -80,9 +81,15 @@ func main() {
 		log.Fatalf("Error loading karma DB: %s", err)
 	}
 
-	conn = irc.New()
+	netConn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", bot.Server, bot.Port))
+	if err != nil {
+		log.Fatalf("Failed to connect to IRC server: %s", err)
+	}
+	log.Println("Connected to IRC server", fmt.Sprintf("%s:%d", bot.Server, bot.Port), netConn.RemoteAddr())
 
-	if err = conn.Connect(bot.Server, bot.Port, bot.Nick, bot.User); err != nil {
+	conn = irc.New(netConn)
+
+	if err = conn.Connect(bot.Nick, bot.User); err != nil {
 		log.Fatal(err)
 	}
 

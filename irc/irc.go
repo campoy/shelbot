@@ -24,14 +24,13 @@ type Conn struct {
 	PrivMessages chan *PrivMsg
 }
 
-func New() *Conn {
-	c := &Conn{
+func New(conn net.Conn) *Conn {
+	return &Conn{
+		conn:         conn,
 		close:        make(chan struct{}),
 		Messages:     make(chan *Message),
 		PrivMessages: make(chan *PrivMsg),
 	}
-
-	return c
 }
 
 func (c *Conn) send(line string) {
@@ -39,15 +38,7 @@ func (c *Conn) send(line string) {
 	time.Sleep(1000 * time.Millisecond)
 }
 
-func (c *Conn) Connect(server string, port uint16, nick, realName string) error {
-	var err error
-
-	c.conn, err = net.Dial("tcp", fmt.Sprintf("%s:%d", server, port))
-	if err != nil {
-		return fmt.Errorf("Failed to connect to IRC server: %s", err)
-	}
-	Debug.Println("Connected to IRC server", fmt.Sprintf("%s:%d", server, port), c.conn.RemoteAddr())
-
+func (c *Conn) Connect(nick, realName string) error {
 	c.send("USER " + nick + " 8 * :" + realName)
 	c.send("NICK " + nick)
 	return nil

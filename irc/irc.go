@@ -17,22 +17,26 @@ type Client struct {
 	quit         chan struct{}
 	once         sync.Once
 	messages     chan *Message
-	privMessages chan *PrivMsg
+	privMessages chan *PrivateMessage
 	logger       *log.Logger
 	pause        time.Duration
 }
 
-func (c *Client) Messages() <-chan *Message     { return c.messages }
-func (c *Client) PrivMessages() <-chan *PrivMsg { return c.privMessages }
+func (c *Client) Messages() <-chan *Message               { return c.messages }
+func (c *Client) PrivateMessages() <-chan *PrivateMessage { return c.privMessages }
 
 func New(conn io.ReadWriter, opts ...Option) *Client {
 	c := &Client{
 		conn:         conn,
 		quit:         make(chan struct{}),
 		messages:     make(chan *Message),
-		privMessages: make(chan *PrivMsg),
+		privMessages: make(chan *PrivateMessage),
 		logger:       log.New(ioutil.Discard, "IRC: ", log.LstdFlags),
 		pause:        1 * time.Second,
+	}
+
+	for _, opt := range opts {
+		opt(c)
 	}
 
 	return c
@@ -68,7 +72,7 @@ func (c *Client) Part(channel string, partMessage string) error {
 	return c.send("PART %s %s", channel, partMessage)
 }
 
-func (c *Client) PrivMsg(target string, text string) error {
+func (c *Client) Send(target string, text string) error {
 	response := fmt.Sprintf("PRIVMSG %s :%s", target, text)
 	for len(text) > 0 {
 		if len(response) > 400 {
@@ -123,7 +127,7 @@ func (c *Client) Listen() error {
 				continue
 			}
 
-			m, err := NewMessage(line)
+			m, err := newMessage(line)
 			if err != nil {
 				c.logger.Println("Error parsing raw message:", err)
 			}

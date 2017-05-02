@@ -20,7 +20,7 @@ import (
 	geoip2 "github.com/oschwald/geoip2-golang"
 )
 
-var commands = make(map[string]func(*irc.PrivMsg))
+var commands = make(map[string]func(*irc.PrivateMessage))
 
 func init() {
 	commands["help"] = help
@@ -37,28 +37,28 @@ func init() {
 	commands["weather"] = weather
 }
 
-func help(m *irc.PrivMsg) {
+func help(m *irc.PrivateMessage) {
 	var coms []string
 	for com := range commands {
 		coms = append(coms, fmt.Sprintf("\"%s\"", com))
 	}
-	if err := client.PrivMsg(m.ReplyChannel, fmt.Sprintf("%s commands available: %s", bot.Nick, strings.Join(coms, ", "))); err != nil {
+	if err := client.Send(m.ReplyChannel, fmt.Sprintf("%s commands available: %s", bot.Nick, strings.Join(coms, ", "))); err != nil {
 		log.Printf("could not send message: %v", err)
 	}
-	if err := client.PrivMsg(m.ReplyChannel, "Karma can be adjusted thusly: \"foo++\" and \"bar--\""); err != nil {
+	if err := client.Send(m.ReplyChannel, "Karma can be adjusted thusly: \"foo++\" and \"bar--\""); err != nil {
 		log.Printf("could not send message: %v", err)
 	}
 	log.Println("Shelbot help provided.")
 }
 
-func version(m *irc.PrivMsg) {
-	if err := client.PrivMsg(m.ReplyChannel, fmt.Sprintf("%s version %s.", bot.Nick, Version)); err != nil {
+func version(m *irc.PrivateMessage) {
+	if err := client.Send(m.ReplyChannel, fmt.Sprintf("%s version %s.", bot.Nick, Version)); err != nil {
 		log.Printf("could not send message: %v", err)
 	}
 	log.Println("Shelbot version " + Version)
 }
 
-func geoip(m *irc.PrivMsg) {
+func geoip(m *irc.PrivateMessage) {
 	db, err := geoip2.Open(filepath.Join(homeDir, "GeoLite2-City.mmdb"))
 	if err != nil {
 		log.Fatal(err)
@@ -66,7 +66,7 @@ func geoip(m *irc.PrivMsg) {
 	lineElements := strings.Fields(m.Text)
 	if len(lineElements) < 2 {
 		response := fmt.Sprintf("Please provide a value.")
-		if err := client.PrivMsg(m.ReplyChannel, response); err != nil {
+		if err := client.Send(m.ReplyChannel, response); err != nil {
 			log.Printf("could not send message: %v", err)
 		}
 		log.Println(response)
@@ -74,13 +74,13 @@ func geoip(m *irc.PrivMsg) {
 		ip := net.ParseIP(lineElements[1])
 		if ip == nil {
 			if ips, err := net.LookupIP(lineElements[1]); err != nil || len(ips) == 0 {
-				if err := client.PrivMsg(m.ReplyChannel, fmt.Sprintf("I'm sorry %s, %s doesn't seem to be a valid ip address or host", m.Nick, lineElements[1])); err != nil {
+				if err := client.Send(m.ReplyChannel, fmt.Sprintf("I'm sorry %s, %s doesn't seem to be a valid ip address or host", m.Nick, lineElements[1])); err != nil {
 					log.Printf("could not send message: %v", err)
 				}
 				return
 			} else {
 				ip = ips[0]
-				if err := client.PrivMsg(m.ReplyChannel, fmt.Sprintf("Resolved %s to %s", lineElements[1], ip)); err != nil {
+				if err := client.Send(m.ReplyChannel, fmt.Sprintf("Resolved %s to %s", lineElements[1], ip)); err != nil {
 					log.Printf("could not send message: %v", err)
 				}
 			}
@@ -90,14 +90,14 @@ func geoip(m *irc.PrivMsg) {
 			log.Fatal(err)
 		}
 		if record == nil {
-			if err := client.PrivMsg(m.ReplyChannel, fmt.Sprintf("I'm sorry %s, I couldn't find any information for %s", m.Nick, lineElements[1])); err != nil {
+			if err := client.Send(m.ReplyChannel, fmt.Sprintf("I'm sorry %s, I couldn't find any information for %s", m.Nick, lineElements[1])); err != nil {
 				log.Printf("could not send message: %v", err)
 			}
 			return
 		}
 		if cityName, ok := record.City.Names["en"]; ok {
 			response := fmt.Sprintf("English city name: %v", cityName)
-			if err := client.PrivMsg(m.ReplyChannel, response); err != nil {
+			if err := client.Send(m.ReplyChannel, response); err != nil {
 				log.Printf("could not send message: %v", err)
 			}
 			log.Println(response)
@@ -105,7 +105,7 @@ func geoip(m *irc.PrivMsg) {
 		if record.Subdivisions != nil {
 			if subdivName, ok := record.Subdivisions[0].Names["en"]; ok {
 				response := fmt.Sprintf("English subdivision name: %v", subdivName)
-				if err := client.PrivMsg(m.ReplyChannel, response); err != nil {
+				if err := client.Send(m.ReplyChannel, response); err != nil {
 					log.Printf("could not send message: %v", err)
 				}
 				log.Println(response)
@@ -113,14 +113,14 @@ func geoip(m *irc.PrivMsg) {
 		}
 		if cName, ok := record.Country.Names["en"]; ok {
 			response := fmt.Sprintf("English country name: %v", cName)
-			if err := client.PrivMsg(m.ReplyChannel, response); err != nil {
+			if err := client.Send(m.ReplyChannel, response); err != nil {
 				log.Printf("could not send message: %v", err)
 			}
 			log.Println(response)
 		}
 		if cityName, ok := record.City.Names["ja"]; ok {
 			response := fmt.Sprintf("Japanese city name: %v", cityName)
-			if err := client.PrivMsg(m.ReplyChannel, response); err != nil {
+			if err := client.Send(m.ReplyChannel, response); err != nil {
 				log.Printf("could not send message: %v", err)
 			}
 			log.Println(response)
@@ -128,7 +128,7 @@ func geoip(m *irc.PrivMsg) {
 		if record.Subdivisions != nil {
 			if subdivName, ok := record.Subdivisions[0].Names["ja"]; ok {
 				response := fmt.Sprintf("Japanese subdivision name: %v", subdivName)
-				if err := client.PrivMsg(m.ReplyChannel, response); err != nil {
+				if err := client.Send(m.ReplyChannel, response); err != nil {
 					log.Printf("could not send message: %v", err)
 				}
 				log.Println(response)
@@ -136,39 +136,39 @@ func geoip(m *irc.PrivMsg) {
 		}
 		if cName, ok := record.Country.Names["ja"]; ok {
 			response := fmt.Sprintf("Japanese country name: %v", cName)
-			if err := client.PrivMsg(m.ReplyChannel, response); err != nil {
+			if err := client.Send(m.ReplyChannel, response); err != nil {
 				log.Printf("could not send message: %v", err)
 			}
 			log.Println(response)
 		}
 		response := fmt.Sprintf("ISO country code: %v", record.Country.IsoCode)
-		if err := client.PrivMsg(m.ReplyChannel, response); err != nil {
+		if err := client.Send(m.ReplyChannel, response); err != nil {
 			log.Printf("could not send message: %v", err)
 		}
 		log.Println(response)
 		response = fmt.Sprintf("Time zone: %v", record.Location.TimeZone)
-		if err := client.PrivMsg(m.ReplyChannel, response); err != nil {
+		if err := client.Send(m.ReplyChannel, response); err != nil {
 			log.Printf("could not send message: %v", err)
 		}
 		log.Println(response)
 		response = fmt.Sprintf("Coordinates: %v, %v", record.Location.Latitude, record.Location.Longitude)
-		if err := client.PrivMsg(m.ReplyChannel, response); err != nil {
+		if err := client.Send(m.ReplyChannel, response); err != nil {
 			log.Printf("could not send message: %v", err)
 		}
 		log.Println(response)
 		response = fmt.Sprintf("Google Maps: https://www.google.com/maps/@%v,%v,15z", record.Location.Latitude, record.Location.Longitude)
-		if err := client.PrivMsg(m.ReplyChannel, response); err != nil {
+		if err := client.Send(m.ReplyChannel, response); err != nil {
 			log.Printf("could not send message: %v", err)
 		}
 		log.Println(response)
 	}
 }
 
-func convertmph(m *irc.PrivMsg) {
+func convertmph(m *irc.PrivateMessage) {
 	lineElements := strings.Fields(m.Text)
 	if len(lineElements) < 2 {
 		response := fmt.Sprintf("Please provide a value.")
-		if err := client.PrivMsg(m.ReplyChannel, response); err != nil {
+		if err := client.Send(m.ReplyChannel, response); err != nil {
 			log.Printf("could not send message: %v", err)
 		}
 		log.Println(response)
@@ -178,18 +178,18 @@ func convertmph(m *irc.PrivMsg) {
 		kmh := conversions.MPHToKMH(mph)
 
 		response := fmt.Sprintf("%s is %s", mph, kmh)
-		if err := client.PrivMsg(m.ReplyChannel, response); err != nil {
+		if err := client.Send(m.ReplyChannel, response); err != nil {
 			log.Printf("could not send message: %v", err)
 		}
 		log.Println(response)
 	}
 }
 
-func convertkmh(m *irc.PrivMsg) {
+func convertkmh(m *irc.PrivateMessage) {
 	lineElements := strings.Fields(m.Text)
 	if len(lineElements) < 2 {
 		response := fmt.Sprintf("Please provide a value.")
-		if err := client.PrivMsg(m.ReplyChannel, response); err != nil {
+		if err := client.Send(m.ReplyChannel, response); err != nil {
 			log.Printf("could not send message: %v", err)
 		}
 		log.Println(response)
@@ -199,18 +199,18 @@ func convertkmh(m *irc.PrivMsg) {
 		mph := conversions.KMHToMPH(kmh)
 
 		response := fmt.Sprintf("%s is %s", kmh, mph)
-		if err := client.PrivMsg(m.ReplyChannel, response); err != nil {
+		if err := client.Send(m.ReplyChannel, response); err != nil {
 			log.Printf("could not send message: %v", err)
 		}
 		log.Println(response)
 	}
 }
 
-func convertc(m *irc.PrivMsg) {
+func convertc(m *irc.PrivateMessage) {
 	lineElements := strings.Fields(m.Text)
 	if len(lineElements) < 2 {
 		response := fmt.Sprintf("Please provide a value.")
-		if err := client.PrivMsg(m.ReplyChannel, response); err != nil {
+		if err := client.Send(m.ReplyChannel, response); err != nil {
 			log.Printf("could not send message: %v", err)
 		}
 		log.Println(response)
@@ -220,18 +220,18 @@ func convertc(m *irc.PrivMsg) {
 		f := conversions.CelsiusToFahrenheit(c)
 
 		response := fmt.Sprintf("%s is %s", c, f)
-		if err := client.PrivMsg(m.ReplyChannel, response); err != nil {
+		if err := client.Send(m.ReplyChannel, response); err != nil {
 			log.Printf("could not send message: %v", err)
 		}
 		log.Println(response)
 	}
 }
 
-func convertf(m *irc.PrivMsg) {
+func convertf(m *irc.PrivateMessage) {
 	lineElements := strings.Fields(m.Text)
 	if len(lineElements) < 2 {
 		response := fmt.Sprintf("Please provide a value.")
-		if err := client.PrivMsg(m.ReplyChannel, response); err != nil {
+		if err := client.Send(m.ReplyChannel, response); err != nil {
 			log.Printf("could not send message: %v", err)
 		}
 		log.Println(response)
@@ -241,20 +241,20 @@ func convertf(m *irc.PrivMsg) {
 		c := conversions.FahrenheitToCelsius(f)
 
 		response := fmt.Sprintf("%s is %s", f, c)
-		if err := client.PrivMsg(m.ReplyChannel, response); err != nil {
+		if err := client.Send(m.ReplyChannel, response); err != nil {
 			log.Printf("could not send message: %v", err)
 		}
 		log.Println(response)
 	}
 }
 
-func query(m *irc.PrivMsg) {
+func query(m *irc.PrivateMessage) {
 	lineElements := strings.Fields(m.Text)
 	if len(lineElements) > 1 {
 		for _, q := range lineElements[1:] {
 			karmaValue := k.query(q)
 			response := fmt.Sprintf("Karma for %s is %d.", q, karmaValue)
-			if err := client.PrivMsg(m.ReplyChannel, response); err != nil {
+			if err := client.Send(m.ReplyChannel, response); err != nil {
 				log.Printf("could not send message: %v", err)
 			}
 			log.Println(response)
@@ -262,7 +262,7 @@ func query(m *irc.PrivMsg) {
 	}
 }
 
-func ten(m *irc.PrivMsg) {
+func ten(m *irc.PrivateMessage) {
 	lineElements := strings.Fields(m.Text)
 	var p []Pair
 	for k, v := range k.db {
@@ -278,14 +278,14 @@ func ten(m *irc.PrivMsg) {
 
 	for i := 0; i < 10 && i < len(p); i++ {
 		response := fmt.Sprintf("Karma for %s is %d.", p[i].Key, p[i].Value)
-		if err := client.PrivMsg(m.ReplyChannel, response); err != nil {
+		if err := client.Send(m.ReplyChannel, response); err != nil {
 			log.Printf("could not send message: %v", err)
 		}
 		log.Println(response)
 	}
 }
 
-func wiki(m *irc.PrivMsg) {
+func wiki(m *irc.PrivateMessage) {
 	var wikiLookup struct {
 		Batchcomplete string `json:"batchcomplete"`
 		Query         struct {
@@ -312,7 +312,7 @@ func wiki(m *irc.PrivMsg) {
 
 	resp, err := http.Get("https://en.wikipedia.org/w/api.php?format=json&action=query&prop=extracts|info&redirects&exintro=&inprop=url&explaintext=&titles=" + html.EscapeString(strings.Join(lineElements[1:], "%20")))
 	if err != nil || resp.StatusCode != 200 {
-		if err := client.PrivMsg(m.ReplyChannel, fmt.Sprintf("Sorry %s, there was an error looking up a wiki article on %s", m.Nick, strings.Join(lineElements[1:], " "))); err != nil {
+		if err := client.Send(m.ReplyChannel, fmt.Sprintf("Sorry %s, there was an error looking up a wiki article on %s", m.Nick, strings.Join(lineElements[1:], " "))); err != nil {
 			log.Printf("could not send message: %v", err)
 		}
 		return
@@ -320,23 +320,23 @@ func wiki(m *irc.PrivMsg) {
 	defer resp.Body.Close()
 	dec := json.NewDecoder(resp.Body)
 	if err := dec.Decode(&wikiLookup); err != nil {
-		if err := client.PrivMsg(m.ReplyChannel, fmt.Sprintf("Sorry %s, there was an error looking up a wiki article on %s", m.Nick, strings.Join(lineElements[1:], " "))); err != nil {
+		if err := client.Send(m.ReplyChannel, fmt.Sprintf("Sorry %s, there was an error looking up a wiki article on %s", m.Nick, strings.Join(lineElements[1:], " "))); err != nil {
 			log.Printf("could not send message: %v", err)
 		}
 		return
 	}
 	for _, entry := range wikiLookup.Query.Pages {
-		if err := client.PrivMsg(m.ReplyChannel, strings.Split(entry.Extract, "\n")[0]); err != nil {
+		if err := client.Send(m.ReplyChannel, strings.Split(entry.Extract, "\n")[0]); err != nil {
 			log.Printf("could not send message: %v", err)
 		}
-		if err := client.PrivMsg(m.ReplyChannel, entry.Fullurl); err != nil {
+		if err := client.Send(m.ReplyChannel, entry.Fullurl); err != nil {
 			log.Printf("could not send message: %v", err)
 		}
 		log.Println("Wikipedia extract provided:", entry.Fullurl)
 	}
 }
 
-func weather(m *irc.PrivMsg) {
+func weather(m *irc.PrivateMessage) {
 	lineElements := strings.Fields(m.Text)
 	if apiKey == "" || len(lineElements) < 2 {
 		// need an airport to search for
@@ -347,7 +347,7 @@ func weather(m *irc.PrivMsg) {
 
 	a := LookupAirport(lineElements[1])
 	if a == nil {
-		if err := client.PrivMsg(m.ReplyChannel, fmt.Sprintf("Sorry %s, I couldn't find an airport with that code", m.Nick)); err != nil {
+		if err := client.Send(m.ReplyChannel, fmt.Sprintf("Sorry %s, I couldn't find an airport with that code", m.Nick)); err != nil {
 			log.Printf("could not send message: %v", err)
 		}
 		return
@@ -357,7 +357,7 @@ func weather(m *irc.PrivMsg) {
 	c.SetUnits("si")
 	f, err := c.Forecast(a.Latitude, a.Longitude, nil, false)
 	if err != nil || f == nil {
-		if err := client.PrivMsg(m.ReplyChannel, fmt.Sprintf("Sorry %s, there was an error looking up the weather for %s", m.Nick, a.Name)); err != nil {
+		if err := client.Send(m.ReplyChannel, fmt.Sprintf("Sorry %s, there was an error looking up the weather for %s", m.Nick, a.Name)); err != nil {
 			log.Printf("could not send message: %v", err)
 		}
 		log.Println(err)
@@ -365,7 +365,7 @@ func weather(m *irc.PrivMsg) {
 	}
 
 	response := fmt.Sprintf("The weather at %s is %s and %.1fC", a.Name, f.Currently.Summary, f.Currently.Temperature)
-	if err := client.PrivMsg(m.ReplyChannel, response); err != nil {
+	if err := client.Send(m.ReplyChannel, response); err != nil {
 		log.Printf("could not send message: %v", err)
 	}
 	log.Println(response)

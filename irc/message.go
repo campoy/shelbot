@@ -13,7 +13,7 @@ type Message struct {
 	Parameters string
 }
 
-func NewMessage(raw string) (*Message, error) {
+func newMessage(raw string) (*Message, error) {
 	m := &Message{}
 
 	parts := strings.Fields(raw)

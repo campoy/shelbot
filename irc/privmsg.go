@@ -4,7 +4,7 @@ import (
 	"strings"
 )
 
-type PrivMsg struct {
+type PrivateMessage struct {
 	User         string
 	Nick         string
 	Channel      string
@@ -12,8 +12,8 @@ type PrivMsg struct {
 	ReplyChannel string
 }
 
-func privMsgFromMessage(m *Message) (p *PrivMsg) {
-	p = &PrivMsg{}
+func privMsgFromMessage(m *Message) (p *PrivateMessage) {
+	p = &PrivateMessage{}
 	if sourceParts := strings.SplitN(m.Origin, "!", 2); len(sourceParts) == 2 {
 		p.Nick = sourceParts[0]
 		p.User = sourceParts[1]

@@ -104,33 +104,31 @@ func main() {
 		if err := client.Quit("Bazinga!"); err != nil {
 			log.Printf("Could not exit gracefully: %v", err)
 		}
-		if err = k.save(); err == nil {
-			if f, ok := k.dbFile.(*os.File); ok {
-				f.Close()
-			}
-		}
-		if !*debug {
-			logFile.Close()
-		}
-		os.Exit(0)
 	}()
 
 	if err := client.Join(bot.Channel, ""); err != nil {
 		log.Fatalf("could not join channel: %v", err)
 	}
-	err = client.PrivMsg(bot.Channel, fmt.Sprintf("%s version %s reporting for duty", bot.Nick, Version))
+	err = client.Send(bot.Channel, fmt.Sprintf("%s version %s reporting for duty", bot.Nick, Version))
 	if err != nil {
 		log.Fatalf("Could not send hello: %v", err)
 	}
 
-	go handleMessages(client.PrivMessages())
+	go handleMessages(client.PrivateMessages())
 
-	if err := client.Listen(); err != nil {
+	listenErr := client.Listen()
+	if err = k.save(); err == nil {
+		if f, ok := k.dbFile.(*os.File); ok {
+			f.Close()
+		}
+	}
+
+	if listenErr != nil {
 		log.Fatal(err)
 	}
 }
 
-func handleMessages(msgs <-chan *irc.PrivMsg) {
+func handleMessages(msgs <-chan *irc.PrivateMessage) {
 	for msg := range msgs {
 		lineElements := strings.Fields(msg.Text)
 
@@ -163,7 +161,7 @@ func handleMessages(msgs <-chan *irc.PrivMsg) {
 		if lastK, ok := limits[msg.User]; (ok && lastK.Add(60*time.Second).Before(time.Now())) || !ok {
 			karmaTotal := karmaFunc(handle)
 			response := fmt.Sprintf("Karma for %s now %d", handle, karmaTotal)
-			if err := client.PrivMsg(msg.ReplyChannel, response); err != nil {
+			if err := client.Send(msg.ReplyChannel, response); err != nil {
 				log.Printf("Could not send message: %v", err)
 				continue
 			}

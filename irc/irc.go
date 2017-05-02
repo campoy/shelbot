@@ -36,31 +36,31 @@ func New(conn io.ReadWriter) *Client {
 	}
 }
 
-func (c *Client) send(line string) error {
-	_, err := c.conn.Write([]byte(fmt.Sprintf("%s\r\n", line)))
+func (c *Client) send(format string, args ...interface{}) error {
+	_, err := c.conn.Write([]byte(fmt.Sprintf(format+"\r\n", args...)))
 	time.Sleep(1000 * time.Millisecond)
 	return err
 }
 
 func (c *Client) Connect(nick, realName string) error {
-	c.send("USER " + nick + " 8 * :" + realName)
-	c.send("NICK " + nick)
+	c.send("USER %s 8 * :%s", nick, realName)
+	c.send("NICK %s", nick)
 	return nil
 }
 
 func (c *Client) Join(channel string, key string) error {
-	return c.send(fmt.Sprintf("JOIN %s %s", channel, key))
+	return c.send("JOIN %s %s", channel, key)
 }
 
 func (c *Client) JoinExclusive(channel string, key string) error {
-	return c.send(fmt.Sprintf("JOIN %s %s 0", channel, key))
+	return c.send("JOIN %s %s 0", channel, key)
 }
 
 func (c *Client) Part(channel string, partMessage string) error {
 	if partMessage != "" {
 		partMessage = fmt.Sprintf(":%s", partMessage)
 	}
-	return c.send(fmt.Sprintf("PART %s %s", channel, partMessage))
+	return c.send("PART %s %s", channel, partMessage)
 }
 
 func (c *Client) PrivMsg(target string, text string) error {
@@ -85,7 +85,7 @@ func (c *Client) Quit(quitMessage string) error {
 	if quitMessage != "" {
 		quitMessage = fmt.Sprintf(":%s", quitMessage)
 	}
-	if err := c.send(fmt.Sprintf("QUIT %s", quitMessage)); err != nil {
+	if err := c.send("QUIT %s", quitMessage); err != nil {
 		return err
 	}
 	c.once.Do(func() { close(c.quit) })
@@ -113,7 +113,7 @@ func (c *Client) Listen() error {
 			Debug.Println(line)
 			lineElements := strings.Fields(line)
 			if lineElements[0] == "PING" {
-				c.send("PONG " + lineElements[1])
+				c.send("PONG %s", lineElements[1])
 				Debug.Println("PONG " + lineElements[1])
 				continue
 			}

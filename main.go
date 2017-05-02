@@ -43,7 +43,6 @@ type Pair struct {
 func main() {
 	var err error
 	var logFile *os.File
-	var karmaFunc func(string) int
 
 	confFile := flag.String("config", filepath.Join(homeDir, ".shelbot.conf"), "config file to be used with shelbot")
 	karmaFile := flag.String("karmaFile", filepath.Join(homeDir, ".shelbot.json"), "karma db file")
@@ -100,7 +99,9 @@ func main() {
 		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 		<-c
 		log.Println("Received SIGTERM, exiting")
-		client.Quit("Bazinga!")
+		if err := client.Quit("Bazinga!"); err != nil {
+			log.Printf("Could not exit gracefully: %v", err)
+		}
 		if err = k.save(); err == nil {
 			if f, ok := k.dbFile.(*os.File); ok {
 				f.Close()
@@ -112,11 +113,22 @@ func main() {
 		os.Exit(0)
 	}()
 
-	client.Join(bot.Channel, "")
-	client.PrivMsg(bot.Channel, fmt.Sprintf("%s version %s reporting for duty", bot.Nick, Version))
+	if err := client.Join(bot.Channel, ""); err != nil {
+		log.Fatalf("could not join channel: %v", err)
+	}
+	err = client.PrivMsg(bot.Channel, fmt.Sprintf("%s version %s reporting for duty", bot.Nick, Version))
+	if err != nil {
+		log.Fatalf("Could not send hello: %v", err)
+	}
 
-	go client.Listen()
+	go handleMessages(client.PrivMessages)
 
+	if err := client.Listen(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func handleMessages(msg chan *irc.PrivMsg) {
 	for msg := range client.PrivMessages {
 		lineElements := strings.Fields(msg.Text)
 
@@ -135,6 +147,7 @@ func main() {
 		}
 
 		var handle string
+		var karmaFunc func(string) int
 		switch {
 		case strings.HasSuffix(msg.Text, "++"):
 			handle = strings.TrimSuffix(lineElements[len(lineElements)-1], "++")
@@ -148,16 +161,18 @@ func main() {
 		if lastK, ok := limits[msg.User]; (ok && lastK.Add(60*time.Second).Before(time.Now())) || !ok {
 			karmaTotal := karmaFunc(handle)
 			response := fmt.Sprintf("Karma for %s now %d", handle, karmaTotal)
-			client.PrivMsg(msg.ReplyChannel, response)
+			if err := client.PrivMsg(msg.ReplyChannel, response); err != nil {
+				log.Printf("Could not send message: %v", err)
+				continue
+			}
 			log.Println(response)
 
-			if err = k.save(); err != nil {
+			if err := k.save(); err != nil {
 				log.Fatalf("Error saving karma db: %s", err)
 			}
 			limits[msg.User] = time.Now()
 		} else if !lastK.Add(60 * time.Second).Before(time.Now()) {
 			log.Println(msg.Nick, "has already sent a karma message in the last 60 seconds")
 		}
-
 	}
 }

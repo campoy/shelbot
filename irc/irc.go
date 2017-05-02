@@ -54,7 +54,7 @@ func (c *Conn) Connect() error {
 	}
 	Debug.Println("Connected to IRC server", c.server, c.conn.RemoteAddr())
 
-	c.send("USER " + c.nick + " 8 * :" + c.nick)
+	c.send("USER " + c.nick + " 8 * :" + c.realName)
 	c.send("NICK " + c.nick)
 	return nil
 }

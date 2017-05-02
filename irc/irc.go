@@ -16,7 +16,7 @@ var (
 	Debug = log.New(ioutil.Discard, "IRC: ", log.LstdFlags)
 )
 
-type Conn struct {
+type Client struct {
 	wg           sync.WaitGroup
 	conn         io.ReadWriter
 	close        chan struct{}
@@ -24,8 +24,8 @@ type Conn struct {
 	PrivMessages chan *PrivMsg
 }
 
-func New(conn io.ReadWriter) *Conn {
-	return &Conn{
+func New(conn io.ReadWriter) *Client {
+	return &Client{
 		conn:         conn,
 		close:        make(chan struct{}),
 		Messages:     make(chan *Message),
@@ -33,33 +33,33 @@ func New(conn io.ReadWriter) *Conn {
 	}
 }
 
-func (c *Conn) send(line string) {
+func (c *Client) send(line string) {
 	c.conn.Write([]byte(fmt.Sprintf("%s\r\n", line)))
 	time.Sleep(1000 * time.Millisecond)
 }
 
-func (c *Conn) Connect(nick, realName string) error {
+func (c *Client) Connect(nick, realName string) error {
 	c.send("USER " + nick + " 8 * :" + realName)
 	c.send("NICK " + nick)
 	return nil
 }
 
-func (c *Conn) Join(channel string, key string) {
+func (c *Client) Join(channel string, key string) {
 	c.send(fmt.Sprintf("JOIN %s %s", channel, key))
 }
 
-func (c *Conn) JoinExclusive(channel string, key string) {
+func (c *Client) JoinExclusive(channel string, key string) {
 	c.send(fmt.Sprintf("JOIN %s %s 0", channel, key))
 }
 
-func (c *Conn) Part(channel string, partMessage string) {
+func (c *Client) Part(channel string, partMessage string) {
 	if partMessage != "" {
 		partMessage = fmt.Sprintf(":%s", partMessage)
 	}
 	c.send(fmt.Sprintf("PART %s %s", channel, partMessage))
 }
 
-func (c *Conn) PrivMsg(target string, text string) {
+func (c *Client) PrivMsg(target string, text string) {
 	response := fmt.Sprintf("PRIVMSG %s :%s", target, text)
 	for len(text) > 0 {
 		if len(response) > 400 {
@@ -75,7 +75,7 @@ func (c *Conn) PrivMsg(target string, text string) {
 	}
 }
 
-func (c *Conn) Quit(quitMessage string) {
+func (c *Client) Quit(quitMessage string) {
 	if quitMessage != "" {
 		quitMessage = fmt.Sprintf(":%s", quitMessage)
 	}
@@ -85,7 +85,7 @@ func (c *Conn) Quit(quitMessage string) {
 	c.wg.Wait()
 }
 
-func (c *Conn) Listen() {
+func (c *Client) Listen() {
 	c.wg.Add(1)
 	defer c.wg.Done()
 	reader := bufio.NewReader(c.conn)

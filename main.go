@@ -21,7 +21,7 @@ const Version = "2.5.3"
 var (
 	homeDir string
 	bot     *config
-	conn    *irc.Conn
+	client  *irc.Client
 	k       *karma
 	apiKey  string
 	limits  = make(map[string]time.Time)
@@ -89,9 +89,9 @@ func main() {
 
 	log.Println("Connected to IRC server", fmt.Sprintf("%s:%d", bot.Server, bot.Port), netConn.RemoteAddr())
 
-	conn = irc.New(netConn)
+	client = irc.New(netConn)
 
-	if err = conn.Connect(bot.Nick, bot.User); err != nil {
+	if err = client.Connect(bot.Nick, bot.User); err != nil {
 		log.Fatal(err)
 	}
 
@@ -100,7 +100,7 @@ func main() {
 		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 		<-c
 		log.Println("Received SIGTERM, exiting")
-		conn.Quit("Bazinga!")
+		client.Quit("Bazinga!")
 		if err = k.save(); err == nil {
 			if f, ok := k.dbFile.(*os.File); ok {
 				f.Close()
@@ -112,12 +112,12 @@ func main() {
 		os.Exit(0)
 	}()
 
-	conn.Join(bot.Channel, "")
-	conn.PrivMsg(bot.Channel, fmt.Sprintf("%s version %s reporting for duty", bot.Nick, Version))
+	client.Join(bot.Channel, "")
+	client.PrivMsg(bot.Channel, fmt.Sprintf("%s version %s reporting for duty", bot.Nick, Version))
 
-	go conn.Listen()
+	go client.Listen()
 
-	for msg := range conn.PrivMessages {
+	for msg := range client.PrivMessages {
 		lineElements := strings.Fields(msg.Text)
 
 		if lineElements[0] == bot.Nick {
@@ -148,7 +148,7 @@ func main() {
 		if lastK, ok := limits[msg.User]; (ok && lastK.Add(60*time.Second).Before(time.Now())) || !ok {
 			karmaTotal := karmaFunc(handle)
 			response := fmt.Sprintf("Karma for %s now %d", handle, karmaTotal)
-			conn.PrivMsg(msg.ReplyChannel, response)
+			client.PrivMsg(msg.ReplyChannel, response)
 			log.Println(response)
 
 			if err = k.save(); err != nil {
